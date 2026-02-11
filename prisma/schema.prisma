@@ -1,0 +1,269 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------
+// 1. AUTH & USER MODELS
+// --------------------------------------
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password       String?   // Hashed password (null for Social Login)
+  fullName       String
+  avatarUrl      String?
+  phoneNumber    String?
+  
+  // Social Auth IDs
+  googleId       String?   @unique
+  appleId        String?   @unique
+
+  role           UserRole  @default(MEMBER)
+  
+  // Relations
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Organization {
+  id            String         @id @default(uuid())
+  name          String
+  slug          String         @unique // For workspace URL (e.g., flow.com/agency-name)
+  logoUrl       String?
+  
+  // Multi-tenancy relations
+  users         User[]
+  subscription  Subscription?
+  clients       Client[]
+  projects      Project[]
+  invoices      Invoice[]
+  leads         Lead[]
+  expenses      Expense[]      // Added for relation consistency
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// --------------------------------------
+// 2. SUBSCRIPTION & BILLING
+// --------------------------------------
+
+model Plan {
+  id                String         @id @default(uuid())
+  name              String         // Basic, Business, Enterprise
+  description       String?
+  monthlyPrice      Decimal        @db.Decimal(10, 2)
+  annualPrice       Decimal        @db.Decimal(10, 2)
+  
+  // Feature Limits
+  userLimit         Int            @default(1)
+  projectLimit      Int            @default(5)
+  storageLimit      Int            @default(5) // In GB
+  canCustomBranding Boolean        @default(false)
+  
+  subscriptions     Subscription[]
+}
+
+model Subscription {
+  id                String             @id @default(uuid())
+  status            SubscriptionStatus @default(TRIALING)
+  billingCycle      BillingCycle
+  
+  startDate         DateTime           @default(now())
+  currentPeriodEnd  DateTime
+  cancelAtPeriodEnd Boolean            @default(false)
+
+  // Relations
+  organizationId    String             @unique
+  organization      Organization       @relation(fields: [organizationId], references: [id])
+  
+  planId            String
+  plan              Plan               @relation(fields: [planId], references: [id])
+  
+  transactions      Transaction[]
+}
+
+model Transaction {
+  id              String        @id @default(uuid())
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("USD")
+  status          PaymentStatus
+  provider        String        // Stripe, Qi Card, FIB
+  providerRef     String        @unique // Transaction ID from provider
+  
+  subscriptionId  String
+  subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
+  
+  createdAt       DateTime      @default(now())
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// --------------------------------------
+// 3. CORE BUSINESS LOGIC (Agency Dashboard)
+// --------------------------------------
+
+model Client {
+  id             String       @id @default(uuid())
+  name           String
+  email          String
+  companyName    String?
+  avatarUrl      String?
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  projects       Project[]
+  invoices       Invoice[]
+  
+  createdAt      DateTime     @default(now())
+}
+
+model Project {
+  id              String        @id @default(uuid())
+  name            String
+  description     String?
+  status          ProjectStatus @default(PLANNING)
+  startDate       DateTime?
+  endDate         DateTime?
+  budget          Decimal?      @db.Decimal(10, 2)
+
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id])
+  
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  
+  tasks           Task[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Task {
+  id          String      @id @default(uuid())
+  title       String
+  description String?
+  priority    Priority    @default(MEDIUM)
+  status      TaskStatus  @default(TODO)
+  
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  dueDate     DateTime?
+  createdAt   DateTime    @default(now())
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  invoiceNumber  String        @unique
+  issueDate      DateTime      @default(now())
+  dueDate        DateTime
+  amount         Decimal       @db.Decimal(10, 2)
+  status         InvoiceStatus @default(DRAFT)
+  
+  clientId       String
+  client         Client        @relation(fields: [clientId], references: [id])
+  
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+}
+
+model Lead {
+  id             String       @id @default(uuid())
+  fullName       String
+  email          String
+  source         String?      // e.g., Website, Referral
+  status         String       @default("New") // New, Contacted, Qualified, Lost
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  createdAt      DateTime     @default(now())
+}
+
+// --------------------------------------
+// 4. FINANCIAL MANAGEMENT
+// --------------------------------------
+
+model Expense {
+  id              String       @id @default(uuid())
+  title           String
+  amount          Decimal      @db.Decimal(10, 2)
+  category        String       // e.g., Marketing, Salary, Software
+  date            DateTime     @default(now())
+  description     String?
+  
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime     @default(now())
+}
+
+// --------------------------------------
+// ENUMS FOR BUSINESS LOGIC
+// --------------------------------------
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
