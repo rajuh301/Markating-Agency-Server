@@ -4,7 +4,6 @@ import { StatsService } from './stats.service';
 const getSummary = async (req: Request & { user?: any }, res: Response) => {
 
     try {
-        // সাধারণত auth middleware থেকে organizationId পাওয়া যায়
         const organizationId = (req as any).user?.organizationId;
         const result = await StatsService.getDashboardSummary(organizationId);
 

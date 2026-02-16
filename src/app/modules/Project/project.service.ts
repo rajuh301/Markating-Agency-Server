@@ -19,7 +19,7 @@ const createProject = async (payload: any) => {
 const getAllProjects = async () => {
     return await prisma.project.findMany({
         include: {
-            client: true, // প্রজেক্টের সাথে ক্লায়েন্টের তথ্য দেখার জন্য
+            client: true, 
         }
     });
 };

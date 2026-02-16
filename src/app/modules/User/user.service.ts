@@ -2,38 +2,54 @@ import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
-
 const createUser = async (data: any) => {
   const { fullName, email, password, companyName } = data;
 
-  // পাসওয়ার্ড হ্যাশ করা
+  const isUserExist = await prisma.user.findUnique({ where: { email } });
+  if (isUserExist) {
+    throw new Error("This email is already registered. Please try logging in instead.");
+  }
+
+  const slug = companyName.toLowerCase().replace(/ /g, '-');
+
+  const isOrgExist = await prisma.organization.findUnique({ where: { slug } });
+  
+  if (isOrgExist) {
+    throw new Error(`The agency name "${companyName}" is already taken. Please try adding a city name or a unique word (e.g., ${companyName} BD).`);
+  }
+
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // Transaction: অর্গানাইজেশন এবং ইউজার একসাথে তৈরি হবে
   return await prisma.$transaction(async (tx) => {
-    const newOrg = await tx.organization.create({
-      data: {
-        name: companyName,
-        slug: companyName.toLowerCase().replace(/ /g, '-'),
-      },
-    });
+    try {
+      const newOrg = await tx.organization.create({
+        data: {
+          name: companyName,
+          slug: slug,
+        },
+      });
 
-    const newUser = await tx.user.create({
-      data: {
-        fullName,
-        email,
-        password: hashedPassword,
-        role: UserRole.OWNER, // প্রথম ইউজারকে মালিক বানানো হচ্ছে
-        organizationId: newOrg.id,
-      },
-      include: {
-        organization: true,
-      },
-    });
+      const newUser = await tx.user.create({
+        data: {
+          fullName,
+          email,
+          password: hashedPassword,
+          role: UserRole.OWNER,
+          organizationId: newOrg.id,
+        },
+        include: { organization: true },
+      });
 
-    return newUser;
+      return newUser;
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new Error("This organization name or email is already in use. Please try a different one.");
+      }
+      throw new Error("Something went wrong during registration. Please try again later.");
+    }
   });
 };
+
 
 const findUserByEmail = async (email: string) => {
   return await prisma.user.findUnique({
@@ -46,7 +62,7 @@ const findUserByEmail = async (email: string) => {
 const getAllUsers = async (organizationId: string) => {
     const result = await prisma.user.findMany({
         where: {
-            organizationId: organizationId // নির্দিষ্ট অর্গানাইজেশনের ইউজারদের জন্য
+            organizationId: organizationId 
         },
         select: {
             id: true,
@@ -75,7 +91,7 @@ const inviteUser = async (payload: {
     role: 'ADMIN' | 'MEMBER';
     organizationId: string;
 }) => {
-    // চেক করা ইউজার আগে থেকে আছে কিনা
+ 
     const isExist = await prisma.user.findUnique({
         where: { email: payload.email }
     });
@@ -90,7 +106,7 @@ const inviteUser = async (payload: {
             email: payload.email,
             role: payload.role,
             organizationId: payload.organizationId,
-            // পাসওয়ার্ড ছাড়া তৈরি হচ্ছে (social login বা পরে সেট করার জন্য)
+          
         },
         select: {
             id: true,
@@ -106,7 +122,7 @@ const inviteUser = async (payload: {
 
 
 const setPassword = async (email: string, password: string) => {
-    // ১. চেক করা ইউজার আছে কি না
+    
     const user = await prisma.user.findUnique({
         where: { email }
     });
@@ -115,10 +131,10 @@ const setPassword = async (email: string, password: string) => {
         throw new Error("User not found!");
     }
 
-    // ২. পাসওয়ার্ড হ্যাশ করা
+    
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // ৩. পাসওয়ার্ড আপডেট করা
+    
     const result = await prisma.user.update({
         where: { email },
         data: {

@@ -83,66 +83,72 @@ const changePassword = async (
 
 const forgotPassword = async (payload: { email: string }) => {
     const userData = await prisma.user.findUniqueOrThrow({
+        where: { email: payload.email }
+    });
 
-        
-        where: {
-            email: payload.email,
+    // ৬ ডিজিটের OTP তৈরি
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // ৩ মিনিটের জন্য মেয়াদ নির্ধারণ
+    const expires = new Date(Date.now() + 3 * 60 * 1000); 
+
+    // ডাটাবেজে OTP এবং Expiry আপডেট করা
+    await prisma.user.update({
+        where: { email: userData.email },
+        data: {
+            verificationCode: otp,
+            codeExpiry: expires
         }
-    })
+    });
 
-    const resetPasswordToken = jwtHelpers.generateToken(
-        { email: userData.email, role: userData.role },
-        config.jwt.reset_pass_secret as Secret,
-        config.jwt.reset_pass_token_expires_in as string
-    )
-
-    const resetPassLink = config.reset_pass_link + `?userId=${userData.id}&token=${resetPasswordToken}`
-    await emailSender(userData.email,
+    // ইমেইল পাঠানো
+    await emailSender(
+        userData.email,
         `
-        <div><
-            <p>Dear User,</p>
-            <p>Your password reset link 
-            <a href=${resetPassLink}>
-                <button>Reset Password</button>
-            </a>
-            </p>
+        <div style="font-family: Arial, sans-serif; text-align: center;">
+            <h2>Verification Code</h2>
+            <p>Your OTP for password reset is:</p>
+            <h1 style="color: #4CAF50; letter-spacing: 5px;">${otp}</h1>
+            <p>This code will expire in 3 minutes.</p>
         </div>
         `
-    )
+    );
 
-    //http://localhost:3000/reset-pass?email=rajuh301@gmail.com&token=jkbkjgkjgbkjrgbjkrgb
+    return null;
 };
 
+const resetPassword = async (payload: any) => {
+    const { email, code, newPassword } = payload;
 
-const resetPassword = async (token: string, payload: { id: string, password: string }) => {
-
-
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            id: payload.id
-        }
+    const user = await prisma.user.findUniqueOrThrow({
+        where: { email }
     });
 
-    const isValidToken = jwtHelpers.verifyToken(token, config.jwt.reset_pass_secret as Secret);
+    // ১. কোড ভেরিফিকেশন
+    if (!user.verificationCode || user.verificationCode !== code) {
+        throw new Error("Invalid verification code!");
+    }
 
-    //Hash password
-    //Update into database
+    // ২. মেয়াদ শেষ কি না চেক করা
+    if (user.codeExpiry && new Date() > user.codeExpiry) {
+        throw new Error("Verification code has expired!");
+    }
 
-    if (!isValidToken) {
-        throw new ApiError(403, "Forbidden")
-    };
+    // ৩. নতুন পাসওয়ার্ড হ্যাশ করা
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    const hashedPassword: string = await bcrypt.hash(payload.password, 12);
-
+    // ৪. পাসওয়ার্ড আপডেট এবং OTP ক্লিয়ার করা
     await prisma.user.update({
-        where: {
-            id: userData.id
-        },
+        where: { email },
         data: {
             password: hashedPassword,
+            verificationCode: null,
+            codeExpiry: null
         }
     });
-}
+
+    return null;
+};
 
 
 const client = new OAuth2Client(config.googleLogin.client_id);

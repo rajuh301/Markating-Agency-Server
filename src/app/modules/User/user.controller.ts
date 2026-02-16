@@ -25,7 +25,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
 
     if (!user || !(await bcrypt.compare(password, user.password!))) {
       res.status(401).json({ message: "Invalid credentials" });
-      return; // এখানে শুধু return দিন, res.json রিটার্ন করবেন না
+      return; 
     }
 
     const token = jwt.sign(
@@ -46,7 +46,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
 
 const getAllUsers = async (req: Request, res: Response) => {
     try {
-        // যদি আপনি চান শুধু লগইন করা ইউজারের অর্গানাইজেশনের মেম্বারদের দেখাবে
+       
         const organizationId = (req as any).user.organizationId; 
         
         const result = await UserService.getAllUsers(organizationId);
@@ -94,7 +94,6 @@ const setPassword = async (req: Request, res: Response) => {
 
 const getMyProfile = async (req: Request, res: Response) => {
     try {
-        // টোকেন থেকে পাওয়া আইডি (auth middleware এটি সেট করে)
         const userId = (req as any).user.userId; 
         
         const result = await UserService.getMyProfile(userId);

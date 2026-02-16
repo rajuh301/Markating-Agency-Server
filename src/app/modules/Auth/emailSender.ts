@@ -24,7 +24,7 @@ const emailSender = async (
 
     // send mail with defined transport object
     const info = await transporter.sendMail({
-        from: '"PH Health Care👻" <rajuhassan433@gmail.com>', // sender address
+        from: `"Flow👻" <${config.emailSender.email}>`, // sender address
         to: email,
         subject: "Reset password Link", // Subject line
         // text: "Hello world?", // plain text body

@@ -34,7 +34,6 @@ router.post(
 
 router.patch(
     '/set-password',
-    // ইনভাইটেড ইউজারের টোকেন থাকলে auth middleware ব্যবহার করতে পারেন
     UserController.setPassword 
 );
 

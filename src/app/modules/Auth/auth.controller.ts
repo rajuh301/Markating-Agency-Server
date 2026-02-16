@@ -40,34 +40,27 @@ const changePassword = async (req: Request, res: Response) => {
 };
 
 const forgotPassword = catchAsync(async (req: Request, res: Response) => {
-    await AuthServices.forgotPassword(req.body)
-
+    await AuthServices.forgotPassword(req.body);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Check your email",
+        message: "Verification code sent to your email!",
         data: null
-    })
+    });
 });
 
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-
-    const token = req.headers.authorization || "";
-
-
-    await AuthServices.resetPassword(token, req.body)
-
+    await AuthServices.resetPassword(req.body);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Password reset successfully!",
+        message: "Password reset successful! Please login with your new password.",
         data: null
-    })
-
-})
+    });
+});
 
 
 
