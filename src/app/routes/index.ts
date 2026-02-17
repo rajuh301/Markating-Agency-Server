@@ -6,6 +6,7 @@ import { ClientRoutes } from "../modules/Client/client.route";
 import { ProjectRoutes } from "../modules/Project/project.route";
 import { StatsRoutes } from "../modules/Stats/stats.route";
 import { ExpenseRoutes } from "../modules/Expense/expense.route";
+import { OrganizationRoutes } from "../modules/organization/organization.routes";
 
 
 
@@ -45,6 +46,10 @@ const moduleRoutes = [
     {
         path: "/expenses",
         route: ExpenseRoutes
+    },
+    {
+        path: "/organization",
+        route: OrganizationRoutes
     },
   
 ];

@@ -24,25 +24,35 @@ model User {
   verificationCode String?
   codeExpiry       DateTime?
 
-  // --- Relations (Added to solve P1012) ---
+  // --- Relations ---
   projectMembers   ProjectMember[] 
-  createdProjects  Project[]       @relation("CreatedBy") // প্রজেক্ট ক্রিয়েটর রিলেশন
+  createdProjects  Project[]       @relation("CreatedBy")
 }
 
 model Organization {
-  id           String         @id @default(uuid())
-  name         String
-  slug         String         @unique
-  logoUrl      String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  clients      Client[]
-  expenses     Expense[]
-  invoices     Invoice[]
-  leads        Lead[]
-  projects     Project[]
-  subscription Subscription?
-  users        User[]
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique
+  logoUrl       String?  
+  phoneNumber   String?
+  website       String?
+  address       String?
+  city          String?
+  country       String?
+  taxId         String?  
+  currency      String   @default("USD")
+  timezone      String   @default("UTC")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Opposite relations (Fixes P1012)
+  users         User[]
+  clients       Client[]
+  expenses      Expense[]
+  invoices      Invoice[]
+  leads         Lead[]
+  projects      Project[]
+  subscription  Subscription?
 }
 
 model Plan {
@@ -84,15 +94,14 @@ model Transaction {
   subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
 }
 
-
 model Client {
   id              String       @id @default(uuid())
-  companyName     String?     
+  companyName     String?      
   email           String       
-  website         String?     
+  website         String?      
   address         String?      
-  country         String?     
-  city            String?     
+  country         String?      
+  city            String?      
   notes           String?      @db.Text 
   contactPerson   String       
   phoneNumber     String       
@@ -104,7 +113,6 @@ model Client {
   invoices        Invoice[]
   projects        Project[]
 }
-
 
 model Project {
   id             String          @id @default(uuid())
@@ -121,7 +129,6 @@ model Project {
   updatedAt      DateTime        @updatedAt
   members        ProjectMember[]
   
-  // --- Relations ---
   creator        User            @relation("CreatedBy", fields: [creatorId], references: [id])
   client         Client          @relation(fields: [clientId], references: [id])
   organization   Organization    @relation(fields: [organizationId], references: [id])
