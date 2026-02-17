@@ -84,18 +84,27 @@ model Transaction {
   subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
 }
 
+
 model Client {
-  id             String       @id @default(uuid())
-  name           String
-  email          String
-  companyName    String?
-  avatarUrl      String?
-  organizationId String
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  invoices       Invoice[]
-  projects       Project[]
+  id              String       @id @default(uuid())
+  companyName     String?     
+  email           String       
+  website         String?     
+  address         String?      
+  country         String?     
+  city            String?     
+  notes           String?      @db.Text 
+  contactPerson   String       
+  phoneNumber     String       
+  taxId           String?      
+  organizationId  String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices        Invoice[]
+  projects        Project[]
 }
+
 
 model Project {
   id             String          @id @default(uuid())

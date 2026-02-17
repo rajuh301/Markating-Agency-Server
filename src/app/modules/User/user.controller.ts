@@ -24,7 +24,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
     const user = await UserService.findUserByEmail(email);
 
     if (!user || !(await bcrypt.compare(password, user.password!))) {
-      res.status(401).json({ message: "Invalid credentials" });
+      res.status(401).json({ message: "Email and password not match" });
       return; 
     }
 

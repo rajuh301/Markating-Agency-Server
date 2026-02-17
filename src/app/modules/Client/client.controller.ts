@@ -4,14 +4,18 @@ import { ClientService } from './client.service';
 const createClient = async (req: Request, res: Response) => {
     try {
         const result = await ClientService.createClient(req.body);
+        
         res.status(201).json({
             success: true,
-            message: "Client created successfully",
+            message: `Success! ${result.contactPerson} has been added.`,
             data: result
         });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: error.message });
-    };
+        res.status(400).json({ 
+            success: false, 
+            message: error.message || "Something went wrong" 
+        });
+    }
 };
 
 export const ClientController = { createClient };
