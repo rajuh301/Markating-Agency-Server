@@ -8,51 +8,51 @@ datasource db {
 }
 
 model User {
-  id               String          @id @default(uuid())
-  email            String          @unique
+  id               String       @id @default(uuid())
+  email            String       @unique
   password         String?
   fullName         String
   avatarUrl        String?
   phoneNumber      String?
-  googleId         String?         @unique
-  appleId          String?         @unique
-  role             UserRole        @default(MEMBER)
+  googleId         String?      @unique
+  appleId          String?      @unique
+  role             UserRole     @default(MEMBER)
   organizationId   String
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   verificationCode String?
   codeExpiry       DateTime?
 
   // --- Relations ---
-  projectMembers   ProjectMember[] 
-  createdProjects  Project[]       @relation("CreatedBy")
+  projectMembers  ProjectMember[]
+  createdProjects Project[]       @relation("CreatedBy")
 }
 
 model Organization {
-  id            String   @id @default(uuid())
-  name          String
-  slug          String   @unique
-  logoUrl       String?  
-  phoneNumber   String?
-  website       String?
-  address       String?
-  city          String?
-  country       String?
-  taxId         String?  
-  currency      String   @default("USD")
-  timezone      String   @default("UTC")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+  phoneNumber String?
+  website     String?
+  address     String?
+  city        String?
+  country     String?
+  taxId       String?
+  currency    String   @default("USD")
+  timezone    String   @default("UTC")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Opposite relations (Fixes P1012)
-  users         User[]
-  clients       Client[]
-  expenses      Expense[]
-  invoices      Invoice[]
-  leads         Lead[]
-  projects      Project[]
-  subscription  Subscription?
+  users        User[]
+  clients      Client[]
+  expenses     Expense[]
+  invoices     Invoice[]
+  leads        Lead[]
+  projects     Project[]
+  subscription Subscription?
 }
 
 model Plan {
@@ -95,23 +95,23 @@ model Transaction {
 }
 
 model Client {
-  id              String       @id @default(uuid())
-  companyName     String?      
-  email           String       
-  website         String?      
-  address         String?      
-  country         String?      
-  city            String?      
-  notes           String?      @db.Text 
-  contactPerson   String       
-  phoneNumber     String       
-  taxId           String?      
-  organizationId  String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  invoices        Invoice[]
-  projects        Project[]
+  id             String       @id @default(uuid())
+  companyName    String?
+  email          String
+  website        String?
+  address        String?
+  country        String?
+  city           String?
+  notes          String?      @db.Text
+  contactPerson  String
+  phoneNumber    String
+  taxId          String?
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices       Invoice[]
+  projects       Project[]
 }
 
 model Project {
@@ -128,11 +128,11 @@ model Project {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   members        ProjectMember[]
-  
-  creator        User            @relation("CreatedBy", fields: [creatorId], references: [id])
-  client         Client          @relation(fields: [clientId], references: [id])
-  organization   Organization    @relation(fields: [organizationId], references: [id])
-  tasks          Task[]
+
+  creator      User         @relation("CreatedBy", fields: [creatorId], references: [id])
+  client       Client       @relation(fields: [clientId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  tasks        Task[]
 }
 
 model ProjectMember {
