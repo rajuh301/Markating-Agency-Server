@@ -22,11 +22,12 @@ const createPaymentIntent = async (payload: IPaymentPayload) => {
     payment_method_types: ['card'],
   });
 
-  // ২. এখন টাইপস্ক্রিপ্ট আর এরর দিবে না
+  // २. এখন টাইপস্ক্রিপ্ট আর এরর দিবে না
   const invoiceData = await prisma.invoice.create({
     data: {
       invoiceNumber: `INV-${Date.now()}`,
-      amount: payload.amount,
+      subTotal: payload.amount,
+      totalAmount: payload.amount,
       status: 'PAID', 
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       clientId: payload.clientId,        // Fixed!
