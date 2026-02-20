@@ -17,7 +17,17 @@ const getOrganization = async (id: string) => {
     return result;
 };
 
+
+const getAllOrganizations = async (id: string) => {
+    const result = await prisma.organization.findMany({
+        where: {
+        }
+    });
+    return result;
+};
+
 export const OrganizationService = {
     updateOrganization,
-    getOrganization
+    getOrganization,
+    getAllOrganizations
 };

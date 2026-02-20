@@ -15,6 +15,20 @@ const getMyOrganization = async (req: Request, res: Response) => {
     }
 };
 
+
+const getAllOrganizations = async (req: Request, res: Response) => {
+    try {
+        const result = await OrganizationService.getAllOrganizations;
+        res.status(200).json({
+            success: true,
+            message: "All Organizations profile fetched successfully",
+            data: result
+        });
+    } catch (error: any) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
 const updateMyOrganization = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -31,5 +45,6 @@ const updateMyOrganization = async (req: Request, res: Response) => {
 
 export const OrganizationController = {
     getMyOrganization,
-    updateMyOrganization
+    updateMyOrganization,
+    getAllOrganizations
 };

@@ -3,6 +3,8 @@ import { OrganizationController } from './organization.controller';
 
 const router = express.Router();
 
+router.get('/all-organizations', OrganizationController.getAllOrganizations);
+
 // GET: /api/v1/organization/:id
 router.get('/:id', OrganizationController.getMyOrganization);
 
