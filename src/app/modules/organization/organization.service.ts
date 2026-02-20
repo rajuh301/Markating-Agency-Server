@@ -1,3 +1,4 @@
+import { UserStatus } from '@prisma/client';
 import prisma from '../../../shared/prisma';
 
 // প্রোফাইল আপডেট করার জন্য
@@ -26,8 +27,34 @@ const getAllOrganizations = async (id: string) => {
     return result;
 };
 
+
+const softDeleteOrganization = async (id: string) => {
+  return await prisma.$transaction(async (tx) => {
+    const org = await tx.organization.findUnique({ where: { id } });
+    
+    if (!org || org.status === "DELETED") {
+      throw new Error("Organization not found or already deleted.");
+    }
+
+    const deletedOrg = await tx.organization.update({
+      where: { id },
+      data: { status: "DELETED" }
+    });
+
+    await tx.user.updateMany({
+      where: { organizationId: id },
+      data: { status: UserStatus.INACTIVE }
+    });
+
+    return deletedOrg;
+  });
+};
+
+
+
 export const OrganizationService = {
     updateOrganization,
     getOrganization,
-    getAllOrganizations
+    getAllOrganizations,
+    softDeleteOrganization
 };

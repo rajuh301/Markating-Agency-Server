@@ -43,8 +43,30 @@ const updateMyOrganization = async (req: Request, res: Response) => {
     }
 };
 
+
+
+const deleteOrganization = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await OrganizationService.softDeleteOrganization(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Organization and all associated user accounts have been deactivated successfully.",
+      data: null,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to deactivate organization",
+    });
+  }
+};
+
 export const OrganizationController = {
     getMyOrganization,
     updateMyOrganization,
-    getAllOrganizations
+    getAllOrganizations,
+    deleteOrganization
 };
