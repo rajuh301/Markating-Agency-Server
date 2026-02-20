@@ -16,25 +16,27 @@ const getOrganizationReports = async (organizationId: string) => {
     });
 
     // ৩. ডাইনামিক রেভিনিউ (Invoices থেকে)
-    const revenueData = await prisma.invoice.aggregate({
+    const invoices = await prisma.invoice.findMany({
         where: { 
             organizationId,
             status: 'PAID'
         },
-        _sum: {
-            amount: true
+        select: {
+            totalAmount: true
         }
     });
+    const totalRevenue = invoices.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
 
-    // ৪. ডাইনামিক এক্সপেন্স (Expense মডেল থেকে) <--- এটি নতুন যোগ করা হয়েছে
-    const expenseData = await prisma.expense.aggregate({
+    // ৪. ডাইনামিক এক্সপেন্স (Expense মডেল থেকে) <--- এটি নতুন যোগ করা হয়েছে
+    const expenses = await prisma.expense.findMany({
         where: { 
             organizationId 
         },
-        _sum: {
+        select: {
             amount: true
         }
     });
+    const totalExpense = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
 
     // ৫. চার্টের জন্য মাসিক ডেটা
     const monthlyStats = await prisma.report.findMany({
@@ -45,10 +47,10 @@ const getOrganizationReports = async (organizationId: string) => {
 
     return {
         summary: {
-            totalRevenue: Number(revenueData._sum.amount) || 0,
+            totalRevenue,
             activeProjects,
             totalClients,
-            expense: Number(expenseData._sum.amount) || 0, // এখন এটি ডাইনামিক!
+            expense: totalExpense,
         },
         monthlyStats
     };
