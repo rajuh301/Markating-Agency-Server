@@ -87,6 +87,7 @@ const getAllClients = async (organizationId: string, query: any) => {
     const result = await prisma.client.findMany({
         where: {
             AND: andConditions,
+            status: "ACTIVE"
         },
         orderBy: {
             createdAt: 'desc',
