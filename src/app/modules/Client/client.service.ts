@@ -96,6 +96,8 @@ const getAllClients = async (organizationId: string, query: any) => {
     return result;
 };
 
+
+
 const updateClient = async (id: string, payload: any) => {
   try {
 
