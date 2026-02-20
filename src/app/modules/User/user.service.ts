@@ -2,6 +2,7 @@ import { PrismaClient, UserRole } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
+
 const createUser = async (data: any) => {
   const { fullName, email, password, companyName } = data;
 
@@ -179,11 +180,54 @@ const getMyProfile = async (userId: string) => {
 };
 
 
+
+const getProjectManagers = async (organizationId: string) => {
+  const result = await prisma.user.findMany({
+    where: {
+      organizationId,
+      role: 'PROJECT_MANAGER', 
+      status: 'ACTIVE',   
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      status: true,
+      role: true,
+    }
+  });
+
+  return result;
+};
+
+const getProjectMembers = async (organizationId: string) => {
+  const result = await prisma.user.findMany({
+    where: {
+      organizationId,
+      role: 'MEMBER', 
+      status: 'ACTIVE',   
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      status: true,
+      role: true,
+    }
+  });
+
+  return result;
+};
+
+
 export const UserService = {
   createUser,
   findUserByEmail,
   getAllUsers,
   inviteUser,
   setPassword,
-  getMyProfile
+  getMyProfile,
+  getProjectManagers,
+  getProjectMembers
+
 };

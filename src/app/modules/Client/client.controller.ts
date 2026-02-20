@@ -18,4 +18,78 @@ const createClient = async (req: Request, res: Response) => {
     }
 };
 
-export const ClientController = { createClient };
+
+
+const getAllClients = async (req: Request, res: Response) => {
+    try {
+        
+        const user = (req as any).user; 
+        const result = await ClientService.getAllClients(user.organizationId, req.query);
+
+        res.status(200).json({
+            success: true,
+            message: "Clients fetched successfully!",
+            count: result.length,
+            data: result
+        });
+    } catch (error: any) {
+        res.status(400).json({ 
+            success: false, 
+            message: error.message || "Failed to fetch clients" 
+        });
+    }
+};
+
+
+
+
+const deleteClient = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; 
+    
+    await ClientService.deleteClient(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Client has been successfully deleted (Soft Delete).",
+      data: null,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Something went wrong while deleting the client.",
+    });
+  }
+};
+
+
+
+const updateClient = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; 
+    const updateData = req.body; 
+
+   
+    const result = await ClientService.updateClient(id, updateData);
+
+    res.status(200).json({
+      success: true,
+      message: "Client updated successfully!",
+      data: result,
+    });
+  } catch (error: any) {
+    const statusCode = error.message.includes("not found") ? 404 : 400;
+    
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || "Failed to update client information",
+    });
+  }
+};
+
+
+export const ClientController = { createClient,
+    getAllClients,
+    deleteClient,
+    updateClient
+};

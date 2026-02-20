@@ -14,4 +14,23 @@ router.post(
   ClientController.createClient
 );
 
+
+router.get(
+    '/',
+    auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+    ClientController.getAllClients
+);
+
+router.delete(
+    '/:id',
+    auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+    ClientController.deleteClient
+);
+
+router.patch(
+    '/:id',
+    auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+    ClientController.updateClient
+);
+
 export const ClientRoutes = router;

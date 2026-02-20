@@ -9,6 +9,7 @@ export const UserValidation = {
       companyName: z.string().min(2, "Company name is required"),
     }),
   }),
+  
 
   login: z.object({
     body: z.object({

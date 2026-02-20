@@ -44,4 +44,16 @@ router.get(
 );
 
 
+router.get(
+  '/project-managers',
+  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+  UserController.getProjectManagers
+);
+
+router.get(
+  '/project-members',
+  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+  UserController.getProjectMembers
+);
+
 export const UserRoutes = router;

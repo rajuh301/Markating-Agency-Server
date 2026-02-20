@@ -7,6 +7,9 @@ import { ProjectRoutes } from "../modules/Project/project.route";
 import { StatsRoutes } from "../modules/Stats/stats.route";
 import { ExpenseRoutes } from "../modules/Expense/expense.route";
 import { OrganizationRoutes } from "../modules/organization/organization.routes";
+import { ReportRoutes } from "../modules/Report/report.routes";
+import { InvoiceRoutes } from "../modules/Invoice/invoice.routes";
+import { QuotationRoutes } from "../modules/Quotation/quotation.routes";
 
 
 
@@ -50,6 +53,20 @@ const moduleRoutes = [
     {
         path: "/organization",
         route: OrganizationRoutes
+    },
+    {
+        path: "/reports",
+        route: ReportRoutes
+    },
+
+    {
+        path: "/invoice",
+        route: InvoiceRoutes
+    },
+  
+    {
+        path: "/quotation",
+        route: QuotationRoutes
     },
   
 ];

@@ -53,4 +53,100 @@ const createClient = async (payload: any) => {
     }
 };
 
-export const ClientService = { createClient };
+const getAllClients = async (organizationId: string, query: any) => {
+    const { searchTerm, city, country } = query;
+
+    const andConditions: any[] = [{ organizationId }];
+
+    if (searchTerm) {
+        andConditions.push({
+            OR: [
+                { contactPerson: { contains: searchTerm, mode: 'insensitive' } },
+                { companyName: { contains: searchTerm, mode: 'insensitive' } },
+                { email: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+        });
+    }
+
+    if (city) andConditions.push({ city });
+    if (country) andConditions.push({ country });
+
+    const clients = await prisma.client.findMany({
+        where: {
+            status: "ACTIVE",
+       }
+    });
+
+    if(!clients){
+        throw new Error("No clients found for this organization.");
+    }
+
+
+
+
+    const result = await prisma.client.findMany({
+        where: {
+            AND: andConditions,
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
+
+    return result;
+};
+
+const updateClient = async (id: string, payload: any) => {
+  try {
+
+    const client = await prisma.client.findUnique({
+      where: { id,
+        status:"ACTIVE"
+       },
+    });
+
+    if (!client) {
+        throw new Error("Client not found or already deleted.");
+    }
+
+
+    const result = await prisma.client.update({
+      where: { id },
+      data: payload,
+    });
+
+    return result;
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      throw new Error("Client not found or already deleted.");
+    }
+    throw error;
+  }
+};
+
+
+const deleteClient = async (id: string) => {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id },
+    });
+
+    if (!client || client.status === "DELETED") {
+      throw new Error("Client not found or already deleted.");
+    }
+
+    const result = await prisma.client.update({
+      where: { id },
+      data: { status: "DELETED" },
+    });
+
+    return result;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to delete client");
+  }
+};
+
+
+export const ClientService = { createClient, getAllClients,updateClient,
+    deleteClient
+ };

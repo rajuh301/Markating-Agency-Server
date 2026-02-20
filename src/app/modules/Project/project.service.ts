@@ -1,48 +1,60 @@
+import { ProjectStatus } from '@prisma/client'
 import prisma from '../../../shared/prisma';
 
-const createProject = async (payload: any, creatorId: string) => {
-  const { members, startDate, endDate, ...projectData } = payload;
 
-  return await prisma.$transaction(async (tx) => {
-    // ১. প্রজেক্ট তৈরি করা
-    const project = await tx.project.create({
-      data: {
+const createProject = async (payload: any, creatorId: string) => {
+   
+  const { teamMembers, startDate, deadline, budget, ...projectData } = payload;
+
+    return await prisma.$transaction(async (tx) => {
+        const project = await tx.project.create({
+    data: {
         ...projectData,
         creatorId,
+        projectManagerId: creatorId,
+        budget: budget ? parseFloat(budget) : 0,
         startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-      },
+        deadline: deadline ? new Date(deadline) : null,
+    },
+});
+
+        if (teamMembers && teamMembers.length > 0) {
+            await tx.projectMember.createMany({
+                data: teamMembers.map((mId: string) => ({
+                    projectId: project.id,
+                    userId: mId,
+                })),
+            });
+        }
+
+        return project;
     });
-
-    // ২. যদি মেম্বার থাকে তবে তাদের ProjectMember টেবিলে যুক্ত করা
-    if (members && members.length > 0) {
-      await tx.projectMember.createMany({
-        data: members.map((mId: string) => ({
-          projectId: project.id,
-          userId: mId,
-        })),
-      });
-    }
-
-    return project;
-  });
 };
 
-const getAllProjectsForAdmin = async (orgId: string) => {
+ const getAllProjectsForAdmin = async (orgId: string) => {
   return await prisma.project.findMany({
-    where: { organizationId: orgId },
+    where: { 
+      organizationId: orgId,
+      // CANCELLED বাদে বাকি সব দেখাবে
+      NOT: {
+        status: ProjectStatus.CANCELLED 
+      }
+    },
     include: { 
       client: true, 
       creator: true, 
       members: { include: { user: true } } 
     },
+    orderBy: { createdAt: 'desc' }
   });
 };
 
 
 const getUserSpecificProjects = async (userId: string) => {
   const projects = await prisma.project.findMany({
+
     where: {
+      status: { not: ProjectStatus.CANCELLED },
       OR: [
         {
          
@@ -87,8 +99,77 @@ const getUserSpecificProjects = async (userId: string) => {
 };
 
 
+const updateProject = async (id: string, payload: any) => {
+  const { teamMembers, startDate, deadline, budget, ...updateData } = payload;
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const project = await tx.project.update({
+        where: { 
+          id: id,
+          NOT: {
+            status: ProjectStatus.CANCELLED
+          }
+        },
+        data: {
+          ...updateData,
+          budget: budget ? parseFloat(budget) : undefined,
+          startDate: startDate ? new Date(startDate) : undefined,
+          deadline: deadline ? new Date(deadline) : undefined,
+        },
+      });
+
+      if (teamMembers) {
+        await tx.projectMember.deleteMany({
+          where: { projectId: id },
+        });
+
+        if (teamMembers.length > 0) {
+          await tx.projectMember.createMany({
+            data: teamMembers.map((mId: string) => ({
+              projectId: id,
+              userId: mId,
+            })),
+          });
+        }
+      }
+
+      return project;
+    });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      throw new Error("Project is deleted or not found.");
+    }
+    throw error;
+  }
+};
+
+
+
+const deleteProject = async (id: string) => {
+  const isExist = await prisma.project.findUnique({
+    where: { id },
+  });
+
+  if (!isExist) {
+    throw new Error("Project not found!");
+  }
+
+  const result = await prisma.project.update({
+    where: { id },
+    data: { status: 'CANCELLED' as any}
+  });
+
+  return result;
+};
+
+
+
+
 export const ProjectService = {
   createProject,
   getUserSpecificProjects,
   getAllProjectsForAdmin,
+  updateProject,
+  deleteProject
 };

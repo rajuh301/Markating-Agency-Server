@@ -82,6 +82,13 @@ const changePassword = async (
 };
 
 const forgotPassword = async (payload: { email: string }) => {
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(payload.email)) {
+        throw new Error("Invalid email format!");
+    }
+
+
     const userData = await prisma.user.findUniqueOrThrow({
         where: { email: payload.email }
     });

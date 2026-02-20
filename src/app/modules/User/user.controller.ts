@@ -3,20 +3,36 @@ import { UserService } from './user.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
+
 const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const result = await UserService.createUser(req.body);
+
     const { password, ...userWithoutPassword } = result;
 
+    const token = jwt.sign(
+      { 
+        userId: result.id, 
+        role: result.role,
+        organizationId: result.organizationId 
+      },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '1d' }
+    );
+
+  
     res.status(201).json({
       success: true,
-      message: "User registered successfully!",
+      message: "User registered and logged in successfully!",
+      token, 
       data: userWithoutPassword,
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+
 
 const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -110,11 +126,54 @@ const getMyProfile = async (req: Request, res: Response) => {
 
 
 
+const getProjectManagers = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user; 
+    const result = await UserService.getProjectManagers(user.organizationId);
+
+    res.status(200).json({
+      success: true,
+      message: "Project Managers fetched successfully!",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to fetch project managers",
+    });
+  }
+};
+
+
+const getProjectMembers = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user; 
+    const result = await UserService.getProjectMembers(user.organizationId);
+
+    res.status(200).json({
+      success: true,
+      message: "Project Members fetched successfully!",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to fetch project members",
+    });
+  }
+};
+
+
+
+
+
 export const UserController = {
   register,
   login,
   getAllUsers,
   inviteUser,
   setPassword,
-  getMyProfile
+  getMyProfile,
+  getProjectManagers,
+  getProjectMembers
 };

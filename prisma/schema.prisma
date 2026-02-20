@@ -25,8 +25,10 @@ model User {
   codeExpiry       DateTime?
 
   // --- Relations ---
+  status           UserStatus  @default(PENDING)
   projectMembers  ProjectMember[]
   createdProjects Project[]       @relation("CreatedBy")
+  managedProjects Project[]       @relation("ProjectManager")
 }
 
 model Organization {
@@ -45,14 +47,34 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Opposite relations (Fixes P1012)
   users        User[]
   clients      Client[]
   expenses     Expense[]
   invoices     Invoice[]
   leads        Lead[]
   projects     Project[]
+  reports      Report[]
   subscription Subscription?
+  Quotation    Quotation[]
+}
+
+model Report {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  totalRevenue      Float @default(0)
+  totalExpense      Float @default(0)
+  activeProjects    Int   @default(0)
+  completedProjects Int   @default(0)
+  totalClients      Int   @default(0)
+
+  month     String
+  year      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, month, year])
 }
 
 model Plan {
@@ -109,30 +131,45 @@ model Client {
   organizationId String
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  status         String   @default("ACTIVE")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invoices       Invoice[]
   projects       Project[]
+  quotations     Quotation[]
 }
 
 model Project {
-  id             String          @id @default(uuid())
-  name           String
-  creatorId      String
-  description    String?
-  status         ProjectStatus   @default(PLANNING)
-  startDate      DateTime?
-  endDate        DateTime?
-  budget         Decimal?        @db.Decimal(10, 2)
-  clientId       String
-  organizationId String
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  members        ProjectMember[]
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(PLANNING)
 
+  budget       Decimal? @db.Decimal(10, 2)
+  currency     String?  @default("USD")
+  billingType  String? // Fixed Price, Hourly, etc.
+  paymentTerms String? // NET 30%, etc.
+
+  startDate DateTime?
+  deadline  DateTime?
+  endDate   DateTime?
+
+  organizationId   String
+  clientId         String
+  projectManagerId String?
+  creatorId        String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
   creator      User         @relation("CreatedBy", fields: [creatorId], references: [id])
-  client       Client       @relation(fields: [clientId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
-  tasks        Task[]
+  client       Client       @relation(fields: [clientId], references: [id])
+
+  projectManager User? @relation("ProjectManager", fields: [projectManagerId], references: [id])
+
+  members ProjectMember[]
+  tasks   Task[]
 }
 
 model ProjectMember {
@@ -158,16 +195,57 @@ model Task {
 }
 
 model Invoice {
-  id             String        @id @default(uuid())
-  invoiceNumber  String        @unique
-  issueDate      DateTime      @default(now())
-  dueDate        DateTime
-  amount         Decimal       @db.Decimal(10, 2)
-  status         InvoiceStatus @default(DRAFT)
+  id            String  @id @default(uuid())
+  invoiceNumber String  @unique
+  themeColor    String? @default("#0F06A0")
+
+  companyLogo String?
+
+  currency     String   @default("USD")
+  poNumber     String?
+  paymentTerms String?
+  issueDate    DateTime @default(now())
+  dueDate      DateTime
+
+  fromName    String?
+  fromAddress String?
+  fromEmail   String?
+  fromPhone   String?
+
+  toName    String?
+  toAddress String?
+  toEmail   String?
+  toPhone   String?
+
+  taxRate     Float   @default(0)
+  amountPaid  Decimal @default(0) @db.Decimal(10, 2)
+  subTotal    Decimal @db.Decimal(10, 2)
+  totalAmount Decimal @db.Decimal(10, 2)
+
+  notes     String?
+  terms     String?
+  signature String?
+  status    InvoiceStatus @default(DRAFT)
+
   clientId       String
   organizationId String
-  client         Client        @relation(fields: [clientId], references: [id])
-  organization   Organization  @relation(fields: [organizationId], references: [id])
+  client         Client       @relation(fields: [clientId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  items     InvoiceItem[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  description String
+  quantity    Int     @default(1)
+  rate        Decimal @db.Decimal(10, 2)
+  amount      Decimal @db.Decimal(10, 2)
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model Lead {
@@ -193,10 +271,71 @@ model Expense {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
+model Quotation {
+  id              String  @id @default(uuid())
+  quotationNumber String  @unique
+  themeColor      String? @default("#0F06A0")
+  companyLogo     String?
+
+  currency      String   @default("USD ($)")
+  poNumber      String?
+  paymentTerms  String?
+  quotationDate DateTime @default(now())
+  dueDate       DateTime
+
+  fromName    String?
+  fromAddress String?
+  fromEmail   String?
+  fromPhone   String?
+
+  toName    String?
+  toAddress String?
+  toEmail   String?
+  toPhone   String?
+
+  taxRate     Float   @default(0)
+  subTotal    Decimal @db.Decimal(10, 2)
+  totalAmount Decimal @db.Decimal(10, 2)
+
+  notes     String?
+  terms     String?
+  signature String?
+  status    QuotationStatus @default(PENDING)
+
+  clientId       String
+  organizationId String
+  client         Client       @relation(fields: [clientId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  items     QuotationItem[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model QuotationItem {
+  id          String  @id @default(uuid())
+  description String
+  quantity    Int
+  rate        Decimal @db.Decimal(10, 2)
+  amount      Decimal @db.Decimal(10, 2)
+
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+enum QuotationStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  DECLINED
+  INVOICED
+}
+
 enum UserRole {
   OWNER
   ADMIN
   MEMBER
+  PROJECT_MANAGER
 }
 
 enum SubscriptionStatus {
@@ -224,6 +363,7 @@ enum ProjectStatus {
   ACTIVE
   COMPLETED
   ON_HOLD
+  CANCELLED
 }
 
 enum TaskStatus {
@@ -246,4 +386,11 @@ enum InvoiceStatus {
   PAID
   OVERDUE
   CANCELLED
+}
+
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
 }
