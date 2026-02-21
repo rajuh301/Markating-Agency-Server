@@ -24,6 +24,7 @@ const getAllOrganizations = async (req: Request, res: Response) => {
             message: "All Organizations profile fetched successfully",
             data: result
         });
+        
     } catch (error: any) {
         res.status(400).json({ success: false, message: error.message });
     }

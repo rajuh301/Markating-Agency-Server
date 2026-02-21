@@ -20,10 +20,7 @@ const getOrganization = async (id: string) => {
 
 
 const getAllOrganizations = async (id: string) => {
-    const result = await prisma.organization.findMany({
-        where: {
-        }
-    });
+    const result = await prisma.organization.findMany();
     return result;
 };
 
