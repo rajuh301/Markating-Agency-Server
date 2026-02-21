@@ -71,19 +71,6 @@ const getAllClients = async (organizationId: string, query: any) => {
     if (city) andConditions.push({ city });
     if (country) andConditions.push({ country });
 
-    const clients = await prisma.client.findMany({
-        where: {
-            status: "ACTIVE",
-       }
-    });
-
-    if(!clients){
-        throw new Error("No clients found for this organization.");
-    }
-
-
-
-
     const result = await prisma.client.findMany({
         where: {
             AND: andConditions,
