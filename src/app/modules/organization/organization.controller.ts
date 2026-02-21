@@ -18,7 +18,7 @@ const getMyOrganization = async (req: Request, res: Response) => {
 
 const getAllOrganizations = async (req: Request, res: Response) => {
     try {
-        const result = await OrganizationService.getAllOrganizations;
+        const result = await OrganizationService.getAllOrganizations();
         res.status(200).json({
             success: true,
             message: "All Organizations profile fetched successfully",

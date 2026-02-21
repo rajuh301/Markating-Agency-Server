@@ -11,7 +11,8 @@ router.get('/all-organizations', OrganizationController.getAllOrganizations);
 router.get('/:id', OrganizationController.getMyOrganization);
 
 // PATCH: /api/v1/organization/:id
-router.patch('/:id', OrganizationController.updateMyOrganization);
+router.patch('/:id',  auth(ENUM_USER_ROLE.OWNER), 
+ OrganizationController.updateMyOrganization);
 
 
 router.delete(

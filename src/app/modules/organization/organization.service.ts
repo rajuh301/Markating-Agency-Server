@@ -13,14 +13,20 @@ const updateOrganization = async (id: string, payload: any) => {
 // প্রোফাইল দেখার জন্য
 const getOrganization = async (id: string) => {
     const result = await prisma.organization.findUnique({
-        where: { id }
+        where: { id ,
+          AND: { status: "ACTIVE" }
+        }
     });
     return result;
 };
 
 
-const getAllOrganizations = async (id: string) => {
-    const result = await prisma.organization.findMany();
+const getAllOrganizations = async () => {
+    const result = await prisma.organization.findMany({
+      where:{
+        status: "ACTIVE"
+      }
+    });
     return result;
 };
 
