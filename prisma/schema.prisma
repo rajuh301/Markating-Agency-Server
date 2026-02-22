@@ -172,6 +172,7 @@ model Project {
 
   members ProjectMember[]
   tasks   Task[]
+  Invoice Invoice[]
 }
 
 model ProjectMember {
@@ -224,15 +225,16 @@ model Invoice {
   subTotal    Decimal @db.Decimal(10, 2)
   totalAmount Decimal @db.Decimal(10, 2)
 
-  notes     String?
-  terms     String?
-  signature String?
-  status    InvoiceStatus @default(DRAFT)
-
+  notes          String?
+  terms          String?
+  signature      String?
+  status         InvoiceStatus @default(DRAFT)
+  projectId      String?
+  project        Project?      @relation(fields: [projectId], references: [id])
   clientId       String
   organizationId String
-  client         Client       @relation(fields: [clientId], references: [id])
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  client         Client        @relation(fields: [clientId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id])
 
   items     InvoiceItem[]
   createdAt DateTime      @default(now())

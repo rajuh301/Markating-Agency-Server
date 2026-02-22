@@ -1,81 +1,178 @@
-import { PrismaClient } from '@prisma/client';
-
+import { PrismaClient, Prisma } from '@prisma/client';
 const prisma = new PrismaClient();
 
-const createInvoice = async (payload: any, organizationId: string) => {
-  const { 
-    items, 
-    taxRate, 
-    amountPaid, 
-    issueDate, 
-    dueDate, 
-    ...invoiceData 
-  } = payload;
+const createInvoice = async (organizationId: string, payload: any) => {
+  const { items, taxRate, clientId, amountPaid, issueDate, dueDate, note, ...invoiceData } = payload;
+
+  if (!organizationId) {
+    throw new Error("Organization ID is required to create an invoice!");
+  }
 
   return await prisma.$transaction(async (tx) => {
-    // ১. অটো-ইনভয়েস নম্বর জেনারেশন লজিক (Yearly Sequential)
     const currentYear = new Date().getFullYear();
     const lastInvoice = await tx.invoice.findFirst({
-      where: {
-        organizationId,
-        invoiceNumber: { startsWith: `INV-${currentYear}` },
+      where: { 
+        organizationId, 
+        invoiceNumber: { startsWith: `INV-${currentYear}` } 
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    let newNumber: string;
+    let newNumber = `INV-${currentYear}-001`;
     if (lastInvoice) {
-      const lastSequence = parseInt(lastInvoice.invoiceNumber.split('-')[2]);
-      const nextSequence = (lastSequence + 1).toString().padStart(3, '0');
-      newNumber = `INV-${currentYear}-${nextSequence}`;
-    } else {
-      newNumber = `INV-${currentYear}-001`;
+      const parts = lastInvoice.invoiceNumber.split('-');
+      const lastSequence = parseInt(parts[2]);
+      newNumber = `INV-${currentYear}-${(lastSequence + 1).toString().padStart(3, '0')}`;
     }
 
-    // ২. সাব-টোটাল ক্যালকুলেশন (Figma: Item Row calculation)
-    const subTotal = items.reduce(
-      (acc: number, item: any) => acc + item.quantity * Number(item.rate),
-      0
-    );
-
-    // ৩. ট্যাক্স এবং টোটাল অ্যামাউন্ট ক্যালকুলেশন
+    const subTotal = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) * Number(item.rate)), 0);
     const totalTax = (subTotal * (Number(taxRate) || 0)) / 100;
     const totalAmount = subTotal + totalTax;
 
-    // ৪. ইনভয়েস এবং আইটেম একসাথে ডাটাবেজে সেভ করা
-    const result = await tx.invoice.create({
-      data: {
-        ...invoiceData,
-        invoiceNumber: newNumber,
-        organizationId,
-        subTotal,
-        totalAmount,
-        taxRate: Number(taxRate) || 0,
-        amountPaid: Number(amountPaid) || 0,
-        
-        // Prisma ISO Date format fix
-        issueDate: issueDate ? new Date(issueDate) : new Date(),
-        dueDate: dueDate ? new Date(dueDate) : new Date(),
+    return await tx.invoice.create({
+  data: {
+    ...invoiceData,
+    invoiceNumber: newNumber,
+    subTotal,
+    totalAmount,
+    notes: note, 
+    taxRate: Number(taxRate) || 0,
+    amountPaid: Number(amountPaid) || 0,
+    issueDate: issueDate ? new Date(issueDate) : new Date(),
+    dueDate: dueDate ? new Date(dueDate) : new Date(),
+    
+    status: "DRAFT", 
+    
+    organization: {
+      connect: { id: organizationId }
+    },
+    client: {
+      connect: { id: clientId }
+    },
+    items: {
+      create: items.map((item: any) => ({
+        description: item.description,
+        quantity: Number(item.quantity),
+        rate: Number(item.rate),
+        amount: Number(item.quantity) * Number(item.rate),
+      })),
+    },
+  },
+  include: {
+    items: true,
+    client: { select: { companyName: true, email: true } }
+  },
+});
 
-        // Relation: Invoice Items
-        items: {
-          create: items.map((item: any) => ({
-            description: item.description,
-            quantity: Number(item.quantity),
-            rate: Number(item.rate),
-            amount: Number(item.quantity) * Number(item.rate),
-          })),
-        },
-      },
-      include: {
-        items: true,
-      },
+  });
+};
+
+const getAllInvoices = async (organizationId: string, query: any) => {
+  const { searchTerm, status, page = 1, limit = 10 } = query;
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const whereConditions: Prisma.InvoiceWhereInput = { organizationId };
+
+  if (searchTerm) {
+    whereConditions.OR = [
+      { invoiceNumber: { contains: searchTerm as string, mode: 'insensitive' } },
+      { client: { companyName: { contains: searchTerm as string, mode: 'insensitive' } } }
+    ];
+  }
+
+  if (status) {
+    whereConditions.status = status;
+  }
+
+  const [data, total] = await Promise.all([
+    prisma.invoice.findMany({
+      where: whereConditions,
+      skip,
+      take: Number(limit),
+      include: { client: { select: { companyName: true } } },
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.invoice.count({ where: whereConditions })
+  ]);
+
+  return {
+    meta: { page: Number(page), limit: Number(limit), total, totalPage: Math.ceil(total / Number(limit)) },
+    data
+  };
+};
+
+
+const getSingleInvoice = async (id: string, organizationId: string) => {
+  const result = await prisma.invoice.findUnique({
+    where: {
+      id,
+      organizationId,
+    },
+    include: {
+      items: true,
+      client: true,
+      project: {
+        select: { name: true }
+      }
+    },
+  });
+
+  if (!result) {
+    throw new Error("Invoice not found!");
+  }
+
+  return result;
+};
+
+const updateInvoice = async (id: string, organizationId: string, payload: any) => {
+  const { items, taxRate, clientId, note, ...invoiceData } = payload;
+
+  return await prisma.$transaction(async (tx) => {
+    // ১. আগের ইনভয়েসটি আছে কি না চেক করা
+    const isExist = await tx.invoice.findUnique({
+      where: { id, organizationId }
     });
 
-    return result;
+    if (!isExist) throw new Error("Invoice not found!");
+
+    // ২. যদি নতুন items আসে তবে ক্যালকুলেশন আপডেট করা
+    let updateData: any = { ...invoiceData };
+    
+    if (note) updateData.notes = note;
+    if (clientId) updateData.client = { connect: { id: clientId } };
+
+    if (items && items.length > 0) {
+      const subTotal = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) * Number(item.rate)), 0);
+      const currentTaxRate = taxRate !== undefined ? taxRate : isExist.taxRate;
+      const totalTax = (subTotal * Number(currentTaxRate)) / 100;
+      
+      updateData.subTotal = subTotal;
+      updateData.totalAmount = subTotal + totalTax;
+      updateData.taxRate = Number(currentTaxRate);
+
+      // পুরানো আইটেম মুছে নতুন আইটেম সেট করা
+      await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
+      updateData.items = {
+        create: items.map((item: any) => ({
+          description: item.description,
+          quantity: Number(item.quantity),
+          rate: Number(item.rate),
+          amount: Number(item.quantity) * Number(item.rate),
+        })),
+      };
+    }
+
+    return await tx.invoice.update({
+      where: { id },
+      data: updateData,
+      include: { items: true, client: true }
+    });
   });
 };
 
 export const InvoiceService = {
   createInvoice,
+  getAllInvoices,
+  getSingleInvoice,
+  updateInvoice
 };
