@@ -19,18 +19,21 @@ const createClient = async (req: Request, res: Response) => {
 };
 
 
-
 const getAllClients = async (req: Request, res: Response) => {
     try {
-        
         const user = (req as any).user; 
+        
+        if (!user?.organizationId) {
+            throw new Error("Organization ID not found in token");
+        }
+
         const result = await ClientService.getAllClients(user.organizationId, req.query);
 
         res.status(200).json({
             success: true,
             message: "Clients fetched successfully!",
-            count: result.length,
-            data: result
+            meta: result.meta,
+            data: result.data
         });
     } catch (error: any) {
         res.status(400).json({ 
@@ -39,6 +42,33 @@ const getAllClients = async (req: Request, res: Response) => {
         });
     }
 };
+
+
+const getSingleClient = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const user = (req as any).user;
+
+        if (!user?.organizationId) {
+            res.status(401).json({ success: false, message: "Unauthorized!" });
+            return;
+        }
+
+        const result = await ClientService.getSingleClient(id, user.organizationId);
+
+        res.status(200).json({
+            success: true,
+            message: "Client details retrieved successfully!",
+            data: result
+        });
+    } catch (error: any) {
+        res.status(404).json({ 
+            success: false, 
+            message: error.message || "Client not found" 
+        });
+    }
+};
+
 
 
 
@@ -91,5 +121,6 @@ const updateClient = async (req: Request, res: Response) => {
 export const ClientController = { createClient,
     getAllClients,
     deleteClient,
-    updateClient
+    updateClient,
+    getSingleClient
 };

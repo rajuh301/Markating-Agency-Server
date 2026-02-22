@@ -54,7 +54,11 @@ const createClient = async (payload: any) => {
 };
 
 const getAllClients = async (organizationId: string, query: any) => {
-    const { searchTerm, city, country } = query;
+    const { searchTerm, city, country, page, limit } = query;
+
+    const p = Number(page) || 1;
+    const l = Number(limit) || 10;
+    const skip = (p - 1) * l;
 
     const andConditions: any[] = [{ organizationId }];
 
@@ -71,18 +75,62 @@ const getAllClients = async (organizationId: string, query: any) => {
     if (city) andConditions.push({ city });
     if (country) andConditions.push({ country });
 
-    const result = await prisma.client.findMany({
+    // ডাটা এবং টোটাল কাউন্ট একসাথে নিয়ে আসা
+    const [result, total] = await Promise.all([
+        prisma.client.findMany({
+            where: {
+                AND: andConditions,
+                status: "ACTIVE"
+            },
+            skip,
+            take: l,
+            orderBy: {
+                createdAt: 'desc',
+            },
+        }),
+        prisma.client.count({
+            where: {
+                AND: andConditions,
+                status: "ACTIVE"
+            }
+        })
+    ]);
+
+    return {
+        meta: {
+            page: p,
+            limit: l,
+            total,
+            totalPage: Math.ceil(total / l)
+        },
+        data: result
+    };
+};
+
+
+const getSingleClient = async (clientId: string, organizationId: string) => {
+    const result = await prisma.client.findFirst({
         where: {
-            AND: andConditions,
+            id: clientId,
+            organizationId: organizationId, 
             status: "ACTIVE"
         },
-        orderBy: {
-            createdAt: 'desc',
-        },
+       
+        include: {
+            projects: {
+                orderBy: { createdAt: 'desc' },
+                take: 5 
+            }
+        }
     });
+
+    if (!result) {
+        throw new Error("Client not found or you don't have access to this client!");
+    }
 
     return result;
 };
+
 
 
 
@@ -138,5 +186,6 @@ const deleteClient = async (id: string) => {
 
 
 export const ClientService = { createClient, getAllClients,updateClient,
-    deleteClient
+    deleteClient,
+    getSingleClient
  };
