@@ -1,18 +1,17 @@
 import { Request, Response } from 'express';
 import { RoleService } from './role.service';
-
 const createRole = async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user; // টোকেন থেকে আসা ডাটা (userId, role)
+    const user = (req as any).user;
 
     if (!user || !user.userId) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Unauthorized! User ID not found in token.",
       });
+      return; 
     }
 
-    // সার্ভিসে শুধু userId এবং বডি ডাটা পাঠানো হচ্ছে
     const result = await RoleService.createRole(user.userId, req.body);
 
     res.status(201).json({
@@ -27,6 +26,7 @@ const createRole = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 const assignRoleToUser = async (req: Request, res: Response) => {
   try {

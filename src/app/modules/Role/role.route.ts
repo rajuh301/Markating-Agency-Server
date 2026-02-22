@@ -7,19 +7,17 @@ import { ENUM_USER_ROLE } from '../enums/user';
 
 const router = express.Router();
 
-// রোল তৈরি করার রাউট
 router.post(
   '/create-role',
   auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
-  validateRequest(RoleValidation.createRoleZodSchema), // ভ্যালিডেশন যুক্ত হলো
+  validateRequest(RoleValidation.createRoleZodSchema), 
   RoleController.createRole
 );
 
-// ইউজারকে রোল দেওয়ার রাউট
 router.post(
   '/assign-role',
   auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
-  validateRequest(RoleValidation.assignRoleZodSchema), // ভ্যালিডেশন যুক্ত হলো
+  validateRequest(RoleValidation.assignRoleZodSchema),
   RoleController.assignRoleToUser
 );
 
