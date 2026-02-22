@@ -161,6 +161,24 @@ const deleteClient = async (id: string) => {
 };
 
 
+const getSingleClient = async (id: string) => {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id },
+    });
+
+    if (!client || client.status === "DELETED") {
+      throw new Error("Client not found or already deleted.");
+    }
+
+    return client;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to fetch client");
+  }
+};
+
+
 export const ClientService = { createClient, getAllClients,updateClient,
-    deleteClient
+    deleteClient,
+    getSingleClient
  };

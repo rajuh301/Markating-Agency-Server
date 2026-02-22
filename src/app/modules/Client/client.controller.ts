@@ -49,6 +49,25 @@ const getAllClients = async (req: Request, res: Response) => {
 
 
 
+const getSingleClient = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; 
+    
+    await ClientService.getSingleClient(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Get Single Client successfully!",
+      data: null,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Something went wrong while deleting the client.",
+    });
+  }
+};
+
 const deleteClient = async (req: Request, res: Response) => {
   try {
     const { id } = req.params; 
@@ -97,5 +116,6 @@ const updateClient = async (req: Request, res: Response) => {
 export const ClientController = { createClient,
     getAllClients,
     deleteClient,
-    updateClient
+    updateClient,
+    getSingleClient
 };
