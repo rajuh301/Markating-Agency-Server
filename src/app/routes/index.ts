@@ -10,6 +10,7 @@ import { OrganizationRoutes } from "../modules/organization/organization.routes"
 import { ReportRoutes } from "../modules/Report/report.routes";
 import { InvoiceRoutes } from "../modules/Invoice/invoice.routes";
 import { QuotationRoutes } from "../modules/Quotation/quotation.routes";
+import { RoleRoutes } from "../modules/Role/role.route";
 
 
 
@@ -67,6 +68,10 @@ const moduleRoutes = [
     {
         path: "/quotation",
         route: QuotationRoutes
+    },
+    {
+        path: "/role",
+        route: RoleRoutes
     },
   
 ];

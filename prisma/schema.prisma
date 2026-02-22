@@ -8,45 +8,47 @@ datasource db {
 }
 
 model User {
-  id               String       @id @default(uuid())
-  email            String       @unique
+  id               String        @id @default(uuid())
+  email            String        @unique
   password         String?
   fullName         String
   avatarUrl        String?
   phoneNumber      String?
-  googleId         String?      @unique
-  appleId          String?      @unique
-  role             UserRole     @default(MEMBER)
+  googleId         String?       @unique
+  appleId          String?       @unique
+  role             UserRole      @default(MEMBER)
+  roles            UserRoleMap[]
   organizationId   String
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   verificationCode String?
   codeExpiry       DateTime?
 
   // --- Relations ---
-  status           UserStatus  @default(PENDING)
+  status          UserStatus      @default(PENDING)
   projectMembers  ProjectMember[]
   createdProjects Project[]       @relation("CreatedBy")
   managedProjects Project[]       @relation("ProjectManager")
 }
 
 model Organization {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  logoUrl     String?
-  phoneNumber String?
-  website     String?
-  address     String?
-  city        String?
-  country     String?
-  taxId       String?
-  currency    String   @default("USD")
-  timezone    String   @default("UTC")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  status  String  @default("ACTIVE")
+  id           String        @id @default(uuid())
+  name         String
+  slug         String        @unique
+  logoUrl      String?
+  phoneNumber  String?
+  website      String?
+  address      String?
+  city         String?
+  country      String?
+  taxId        String?
+  currency     String        @default("USD")
+  timezone     String        @default("UTC")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  status       String        @default("ACTIVE")
+  roles        Role[]
   users        User[]
   clients      Client[]
   expenses     Expense[]
@@ -131,7 +133,7 @@ model Client {
   organizationId String
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-  status         String   @default("ACTIVE")
+  status         String       @default("ACTIVE")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invoices       Invoice[]
   projects       Project[]
@@ -323,6 +325,39 @@ model QuotationItem {
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 
+model Role {
+  id             String        @id @default(uuid())
+  name           String        @unique
+  description    String?
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions    Permission[]
+  users          UserRoleMap[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Permission {
+  id        String  @id @default(uuid())
+  module    String
+  canView   Boolean @default(false)
+  canCreate Boolean @default(false)
+  canEdit   Boolean @default(false)
+  canDelete Boolean @default(false)
+  roleId    String
+  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+}
+
+model UserRoleMap {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
 enum QuotationStatus {
   PENDING
   SENT
@@ -387,7 +422,6 @@ enum InvoiceStatus {
   OVERDUE
   CANCELLED
 }
-
 
 enum UserStatus {
   ACTIVE
