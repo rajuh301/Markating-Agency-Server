@@ -37,6 +37,42 @@ const createRole = async (organizationId: string, payload: any) => {
   });
 };
 
+
+const assignRoleToUser = async (organizationId: string, payload: { userId: string; roleId: string }) => {
+  const { userId, roleId } = payload;
+
+  // ১. চেক করুন রোলটি এই অর্গানাইজেশনের কি না
+  const role = await prisma.role.findFirst({
+    where: { id: roleId, organizationId }
+  });
+
+  if (!role) {
+    throw new Error("Role not found in your organization!");
+  }
+
+  // ২. চেক করুন ইউজারটি এই অর্গানাইজেশনের কি না
+  const user = await prisma.user.findFirst({
+    where: { id: userId, organizationId }
+  });
+
+  if (!user) {
+    throw new Error("User not found in your organization!");
+  }
+
+  // ৩. UserRoleMap এ ডাটা ইনসার্ট বা আপডেট (Upsert) করা
+  const result = await prisma.userRoleMap.upsert({
+    where: {
+      userId_roleId: { userId, roleId }
+    },
+    update: {}, // যদি অলরেডি থাকে তবে কিছু করার দরকার নেই
+    create: { userId, roleId }
+  });
+
+  return result;
+};
+
+
 export const RoleService = {
   createRole,
+  assignRoleToUser
 };

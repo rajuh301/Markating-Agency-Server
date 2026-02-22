@@ -12,4 +12,10 @@ router.post(
   RoleController.createRole
 );
 
+router.post(
+  '/assign-role',
+  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+  RoleController.assignRoleToUser
+);
+
 export const RoleRoutes = router;
