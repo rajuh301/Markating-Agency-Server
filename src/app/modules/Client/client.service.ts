@@ -56,6 +56,10 @@ const createClient = async (payload: any) => {
 const getAllClients = async (organizationId: string, query: any) => {
     const { searchTerm, city, country } = query;
 
+      const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
     const andConditions: any[] = [{ organizationId }];
 
     if (searchTerm) {
@@ -71,6 +75,13 @@ const getAllClients = async (organizationId: string, query: any) => {
     if (city) andConditions.push({ city });
     if (country) andConditions.push({ country });
 
+    const total = await prisma.client.count({
+        where: {
+            AND: andConditions,
+            status: "ACTIVE"
+        }
+    });
+
     const result = await prisma.client.findMany({
         where: {
             AND: andConditions,
@@ -79,10 +90,23 @@ const getAllClients = async (organizationId: string, query: any) => {
         orderBy: {
             createdAt: 'desc',
         },
+        skip,
+        take: limit,
     });
 
-    return result;
-};
+    return {
+         meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: result,
+  };
+    };
+
+    
+
 
 
 

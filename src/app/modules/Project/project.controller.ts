@@ -40,7 +40,7 @@ const getAllProjects = async (req: Request, res: Response) => {
 const getMyProjects = async (req: Request, res: Response) => {
   try {
     const { userId } = (req as any).user;
-    const { page, limit } = req.query; // কুয়েরি প্যারামস থেকে নেওয়া
+    const { page, limit } = req.query;
 
     const result = await ProjectService.getUserSpecificProjects(userId, {
       page: Number(page),
@@ -50,7 +50,7 @@ const getMyProjects = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Personalized projects retrieved successfully",
-      meta: result.meta, // মেটা ডাটা সহ পাঠানো
+      meta: result.meta,
       data: result.data,
     });
   } catch (error: any) {
