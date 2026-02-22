@@ -58,7 +58,7 @@ const getSingleClient = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Get Single Client successfully!",
-      data: null,
+      data: ClientService,
     });
   } catch (error: any) {
     res.status(400).json({
