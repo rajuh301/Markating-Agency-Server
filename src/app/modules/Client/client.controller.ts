@@ -21,29 +21,23 @@ const createClient = async (req: Request, res: Response) => {
 
 
 const getAllClients = async (req: Request, res: Response) => {
-    try {
-      const { page, limit } = req.query;
+    try {
+        
+        const user = (req as any).user; 
+        const result = await ClientService.getAllClients(user.organizationId, req.query);
 
-        const user = (req as any).user; 
-
-        const result = await ClientService.getAllClients(user.organizationId, {
-          ...req.query,
-          page: Number(page),
-          limit: Number(limit)
-        });
-
-        res.status(200).json({
-            success: true,
-            message: "Clients fetched successfully!",
-            count: result.data.length,
-            data: result
-        });
-    } catch (error: any) {
-        res.status(400).json({ 
-            success: false, 
-            message: error.message || "Failed to fetch clients" 
-        });
-    }
+        res.status(200).json({
+            success: true,
+            message: "Clients fetched successfully!",
+            count: result.length,
+            data: result
+        });
+    } catch (error: any) {
+        res.status(400).json({ 
+            success: false, 
+            message: error.message || "Failed to fetch clients" 
+        });
+    }
 };
 
 

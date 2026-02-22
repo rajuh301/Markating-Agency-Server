@@ -20,45 +20,36 @@ const createProject = async (req: Request, res: Response) => {
 const getAllProjects = async (req: Request, res: Response) => {
   try {
     const { organizationId } = (req as any).user;
-    const { page, limit } = req.query;
 
-    const result = await ProjectService.getAllProjectsForAdmin(organizationId, {
-      page: Number(page),
-      limit: Number(limit)
-    });
+    const result = await ProjectService.getAllProjectsForAdmin(organizationId);
 
     res.status(200).json({
       success: true,
       message: "Projects fetched successfully!",
-      meta: result.meta,
-      data: result.data,
+      data: result
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
 const getMyProjects = async (req: Request, res: Response) => {
-  try {
-    const { userId } = (req as any).user;
-    const { page, limit } = req.query;
+  try {
+    const { userId } = (req as any).user;
 
-    const result = await ProjectService.getUserSpecificProjects(userId, {
-      page: Number(page),
-      limit: Number(limit),
-    });
+    const result = await ProjectService.getUserSpecificProjects(userId);
 
-    res.status(200).json({
-      success: true,
-      message: "Personalized projects retrieved successfully",
-      meta: result.meta,
-      data: result.data,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+    res.status(200).json({
+      success: true,
+      message: "Personalized projects retrieved successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 const updateProject = async (req: Request, res: Response) => {

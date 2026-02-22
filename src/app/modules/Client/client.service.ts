@@ -52,61 +52,36 @@ const createClient = async (payload: any) => {
         throw new Error("An unexpected error occurred while creating the client.");
     }
 };
-
 const getAllClients = async (organizationId: string, query: any) => {
-    const { searchTerm, city, country } = query;
+    const { searchTerm, city, country } = query;
 
-      const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
-  const skip = (page - 1) * limit;
+    const andConditions: any[] = [{ organizationId }];
 
-    const andConditions: any[] = [{ organizationId }];
+    if (searchTerm) {
+        andConditions.push({
+            OR: [
+                { contactPerson: { contains: searchTerm, mode: 'insensitive' } },
+                { companyName: { contains: searchTerm, mode: 'insensitive' } },
+                { email: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+        });
+    }
 
-    if (searchTerm) {
-        andConditions.push({
-            OR: [
-                { contactPerson: { contains: searchTerm, mode: 'insensitive' } },
-                { companyName: { contains: searchTerm, mode: 'insensitive' } },
-                { email: { contains: searchTerm, mode: 'insensitive' } },
-            ],
-        });
-    }
+    if (city) andConditions.push({ city });
+    if (country) andConditions.push({ country });
 
-    if (city) andConditions.push({ city });
-    if (country) andConditions.push({ country });
+    const result = await prisma.client.findMany({
+        where: {
+            AND: andConditions,
+            status: "ACTIVE"
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
 
-    const total = await prisma.client.count({
-        where: {
-            AND: andConditions,
-            status: "ACTIVE"
-        }
-    });
-
-
-
-
-    const result = await prisma.client.findMany({
-        where: {
-            AND: andConditions,
-            status: "ACTIVE"
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
-        skip,
-        take: limit,
-    });
-
-    return {
-         meta: {
-      page,
-      limit,
-      total,
-      totalPage: Math.ceil(total / limit),
-    },
-    data: result,
-  };
-    };
+    return result;
+};
 
 
 

@@ -30,110 +30,69 @@ const createProject = async (payload: any, creatorId: string) => {
     });
 };
 
- const getAllProjectsForAdmin = async (orgId: string, options: { page?: number; limit?: number }) => {
-  const page = Number(options.page) || 1;
-  const limit = Number(options.limit) || 10;
-  const skip = (page - 1) * limit;
-
-  const [projects, total] = await Promise.all([
-    prisma.project.findMany({
-      where: { 
-        organizationId: orgId,
-        NOT: {
-          status: 'CANCELLED' 
-        }
-      },
-      include: { 
-        client: true, 
-        creator: true, 
-        members: { include: { user: true } } 
-      },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-    }),
-    prisma.project.count({
-      where: { 
-        organizationId: orgId,
-        NOT: { status: 'CANCELLED' }
-      }
-    })
-  ]);
-
-  return {
-    meta: {
-      page,
-      limit,
-      total,
-      totalPage: Math.ceil(total / limit)
-    },
-    data: projects
-  };
+const getAllProjectsForAdmin = async (orgId: string) => {
+  return await prisma.project.findMany({
+    where: { 
+      organizationId: orgId,
+      NOT: {
+        status: ProjectStatus.CANCELLED 
+      }
+    },
+    include: { 
+      client: true, 
+      creator: true, 
+      members: { include: { user: true } } 
+    },
+    orderBy: { createdAt: 'desc' }
+  });
 };
 
-const getUserSpecificProjects = async (userId: string, options: { page?: number; limit?: number }) => {
-  const page = Number(options.page) || 1;
-  const limit = Number(options.limit) || 10;
-  const skip = (page - 1) * limit;
+const getUserSpecificProjects = async (userId: string) => {
+  const projects = await prisma.project.findMany({
 
-  const whereConditions: any = { 
-    status: { 
-      not: ProjectStatus.CANCELLED 
-    },
-    OR: [
-      { creatorId: userId },
-      {
-        members: {
-          some: { userId: userId },
-        },
-      },
-    ],
-  };
+    where: {
+      status: { not: ProjectStatus.CANCELLED },
+      OR: [
+        {
+         
+          creatorId: userId,
+        },
+        {
+         
+          members: {
+            some: {
+              userId: userId,
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      creator: {
+        select: {
+          fullName: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+      members: {
+        include: {
+          user: {
+            select: {
+              fullName: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+      client: true, 
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+}
 
-  const [projects, total] = await Promise.all([
-    prisma.project.findMany({
-      where: whereConditions,
-      include: {
-        creator: {
-          select: {
-            fullName: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-        members: {
-          include: {
-            user: {
-              select: {
-                fullName: true,
-                avatarUrl: true,
-              },
-            },
-          },
-        },
-        client: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip,
-      take: limit,
-    }),
-    prisma.project.count({
-      where: whereConditions,
-    }),
-  ]);
-
-  return {
-    meta: {
-      page,
-      limit,
-      total,
-      totalPage: Math.ceil(total / limit),
-    },
-    data: projects,
-  };
-};
 
 const updateProject = async (id: string, payload: any) => {
   const { teamMembers, startDate, deadline, budget, ...updateData } = payload;
