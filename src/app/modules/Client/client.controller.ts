@@ -22,9 +22,10 @@ const createClient = async (req: Request, res: Response) => {
 const getAllClients = async (req: Request, res: Response) => {
     try {
         const user = (req as any).user; 
-        
+
         if (!user?.organizationId) {
-            throw new Error("Organization ID not found in token");
+            res.status(401).json({ success: false, message: "Unauthorized: Org ID missing" });
+            return;
         }
 
         const result = await ClientService.getAllClients(user.organizationId, req.query);
@@ -32,8 +33,8 @@ const getAllClients = async (req: Request, res: Response) => {
         res.status(200).json({
             success: true,
             message: "Clients fetched successfully!",
-            meta: result.meta,
-            data: result.data
+            meta: result.meta, 
+            data: result.data 
         });
     } catch (error: any) {
         res.status(400).json({ 
@@ -45,32 +46,29 @@ const getAllClients = async (req: Request, res: Response) => {
 
 
 const getSingleClient = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const user = (req as any).user;
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
 
-        if (!user?.organizationId) {
-            res.status(401).json({ success: false, message: "Unauthorized!" });
-            return;
-        }
-
-        const result = await ClientService.getSingleClient(id, user.organizationId);
-
-        res.status(200).json({
-            success: true,
-            message: "Client details retrieved successfully!",
-            data: result
-        });
-    } catch (error: any) {
-        res.status(404).json({ 
-            success: false, 
-            message: error.message || "Client not found" 
-        });
+    if (!user?.organizationId) {
+      res.status(401).json({ success: false, message: "Unauthorized: Org ID missing" });
+      return;
     }
+
+    const result = await ClientService.getSingleClient(id, user.organizationId);
+
+    res.status(200).json({
+      success: true,
+      message: "Client fetched successfully!",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(404).json({
+      success: false,
+      message: error.message || "Client not found",
+    });
+  }
 };
-
-
-
 
 
 const deleteClient = async (req: Request, res: Response) => {

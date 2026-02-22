@@ -56,6 +56,7 @@ const createClient = async (payload: any) => {
 const getAllClients = async (organizationId: string, query: any) => {
     const { searchTerm, city, country, page, limit } = query;
 
+    // পজিনেশন ক্যালকুলেশন
     const p = Number(page) || 1;
     const l = Number(limit) || 10;
     const skip = (p - 1) * l;
@@ -75,13 +76,15 @@ const getAllClients = async (organizationId: string, query: any) => {
     if (city) andConditions.push({ city });
     if (country) andConditions.push({ country });
 
-    // ডাটা এবং টোটাল কাউন্ট একসাথে নিয়ে আসা
+    const whereConditions = {
+        AND: andConditions,
+        status: "ACTIVE"
+    };
+
+    // ডাটা এবং টোটাল সংখ্যা একসাথে বের করা
     const [result, total] = await Promise.all([
         prisma.client.findMany({
-            where: {
-                AND: andConditions,
-                status: "ACTIVE"
-            },
+            where: whereConditions,
             skip,
             take: l,
             orderBy: {
@@ -89,10 +92,7 @@ const getAllClients = async (organizationId: string, query: any) => {
             },
         }),
         prisma.client.count({
-            where: {
-                AND: andConditions,
-                status: "ACTIVE"
-            }
+            where: whereConditions
         })
     ]);
 
@@ -108,27 +108,31 @@ const getAllClients = async (organizationId: string, query: any) => {
 };
 
 
+
 const getSingleClient = async (clientId: string, organizationId: string) => {
-    const result = await prisma.client.findFirst({
-        where: {
-            id: clientId,
-            organizationId: organizationId, 
-            status: "ACTIVE"
-        },
-       
-        include: {
-            projects: {
-                orderBy: { createdAt: 'desc' },
-                take: 5 
-            }
+  const result = await prisma.client.findFirst({
+    where: {
+      id: clientId,
+      organizationId: organizationId, // সিকিউরিটি চেক: নিশ্চিত করে ক্লায়েন্টটি ইউজারের অর্গানাইজেশনের
+      status: "ACTIVE",
+    },
+    // আপনি চাইলে ক্লায়েন্টের সাথে তার প্রজেক্টগুলোর লিস্টও নিয়ে আসতে পারেন
+    include: {
+      projects: {
+        select: {
+          id: true,
+          status: true,
+          createdAt: true
         }
-    });
-
-    if (!result) {
-        throw new Error("Client not found or you don't have access to this client!");
+      }
     }
+  });
 
-    return result;
+  if (!result) {
+    throw new Error("Client not found or you don't have access to this client!");
+  }
+
+  return result;
 };
 
 
@@ -185,7 +189,10 @@ const deleteClient = async (id: string) => {
 };
 
 
-export const ClientService = { createClient, getAllClients,updateClient,
+export const ClientService = { 
+    createClient, 
+    getAllClients,
+    updateClient,
     deleteClient,
     getSingleClient
  };
