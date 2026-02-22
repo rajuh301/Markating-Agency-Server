@@ -37,17 +37,21 @@ const getAllProjects = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
-
 const getMyProjects = async (req: Request, res: Response) => {
   try {
     const { userId } = (req as any).user;
+    const { page, limit } = req.query; // কুয়েরি প্যারামস থেকে নেওয়া
 
-    const result = await ProjectService.getUserSpecificProjects(userId);
+    const result = await ProjectService.getUserSpecificProjects(userId, {
+      page: Number(page),
+      limit: Number(limit),
+    });
 
     res.status(200).json({
       success: true,
       message: "Personalized projects retrieved successfully",
-      data: result,
+      meta: result.meta, // মেটা ডাটা সহ পাঠানো
+      data: result.data,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -56,7 +60,6 @@ const getMyProjects = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 const updateProject = async (req: Request, res: Response) => {
   try {

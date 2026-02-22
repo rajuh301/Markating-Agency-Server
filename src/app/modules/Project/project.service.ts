@@ -1,7 +1,6 @@
 import { ProjectStatus } from '@prisma/client'
 import prisma from '../../../shared/prisma';
 
-
 const createProject = async (payload: any, creatorId: string) => {
    
   const { teamMembers, startDate, deadline, budget, ...projectData } = payload;
@@ -36,13 +35,12 @@ const createProject = async (payload: any, creatorId: string) => {
   const limit = Number(options.limit) || 10;
   const skip = (page - 1) * limit;
 
-  // ১. ডাটা এবং মোট সংখ্যা একসাথে বের করা (Transaction বা Promise.all ব্যবহার করা ভালো)
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
       where: { 
         organizationId: orgId,
         NOT: {
-          status: 'CANCELLED' // ProjectStatus.CANCELLED
+          status: 'CANCELLED' 
         }
       },
       include: { 
@@ -73,54 +71,69 @@ const createProject = async (payload: any, creatorId: string) => {
   };
 };
 
-const getUserSpecificProjects = async (userId: string) => {
-  const projects = await prisma.project.findMany({
+const getUserSpecificProjects = async (userId: string, options: { page?: number; limit?: number }) => {
+  const page = Number(options.page) || 1;
+  const limit = Number(options.limit) || 10;
+  const skip = (page - 1) * limit;
 
-    where: {
-      status: { not: ProjectStatus.CANCELLED },
-      OR: [
-        {
-         
-          creatorId: userId,
+  const whereConditions: any = { 
+    status: { 
+      not: ProjectStatus.CANCELLED 
+    },
+    OR: [
+      { creatorId: userId },
+      {
+        members: {
+          some: { userId: userId },
         },
-        {
-         
-          members: {
-            some: {
-              userId: userId,
+      },
+    ],
+  };
+
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where: whereConditions,
+      include: {
+        creator: {
+          select: {
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                avatarUrl: true,
+              },
             },
           },
         },
-      ],
-    },
-    include: {
-      creator: {
-        select: {
-          fullName: true,
-          email: true,
-          avatarUrl: true,
-        },
+        client: true,
       },
-      members: {
-        include: {
-          user: {
-            select: {
-              fullName: true,
-              avatarUrl: true,
-            },
-          },
-        },
+      orderBy: {
+        createdAt: 'desc',
       },
-      client: true, 
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+      skip,
+      take: limit,
+    }),
+    prisma.project.count({
+      where: whereConditions,
+    }),
+  ]);
 
-  return projects;
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: projects,
+  };
 };
-
 
 const updateProject = async (id: string, payload: any) => {
   const { teamMembers, startDate, deadline, budget, ...updateData } = payload;
