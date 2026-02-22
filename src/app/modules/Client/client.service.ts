@@ -54,12 +54,7 @@ const createClient = async (payload: any) => {
 };
 
 const getAllClients = async (organizationId: string, query: any) => {
-    const { searchTerm, city, country, page, limit } = query;
-
-    // পজিনেশন ক্যালকুলেশন
-    const p = Number(page) || 1;
-    const l = Number(limit) || 10;
-    const skip = (p - 1) * l;
+    const { searchTerm, city, country } = query;
 
     const andConditions: any[] = [{ organizationId }];
 
@@ -76,65 +71,18 @@ const getAllClients = async (organizationId: string, query: any) => {
     if (city) andConditions.push({ city });
     if (country) andConditions.push({ country });
 
-    const whereConditions = {
-        AND: andConditions,
-        status: "ACTIVE"
-    };
-
-    // ডাটা এবং টোটাল সংখ্যা একসাথে বের করা
-    const [result, total] = await Promise.all([
-        prisma.client.findMany({
-            where: whereConditions,
-            skip,
-            take: l,
-            orderBy: {
-                createdAt: 'desc',
-            },
-        }),
-        prisma.client.count({
-            where: whereConditions
-        })
-    ]);
-
-    return {
-        meta: {
-            page: p,
-            limit: l,
-            total,
-            totalPage: Math.ceil(total / l)
+    const result = await prisma.client.findMany({
+        where: {
+            AND: andConditions,
+            status: "ACTIVE"
         },
-        data: result
-    };
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
+
+    return result;
 };
-
-
-
-const getSingleClient = async (clientId: string, organizationId: string) => {
-  const result = await prisma.client.findFirst({
-    where: {
-      id: clientId,
-      organizationId: organizationId, // সিকিউরিটি চেক: নিশ্চিত করে ক্লায়েন্টটি ইউজারের অর্গানাইজেশনের
-      status: "ACTIVE",
-    },
-    // আপনি চাইলে ক্লায়েন্টের সাথে তার প্রজেক্টগুলোর লিস্টও নিয়ে আসতে পারেন
-    include: {
-      projects: {
-        select: {
-          id: true,
-          status: true,
-          createdAt: true
-        }
-      }
-    }
-  });
-
-  if (!result) {
-    throw new Error("Client not found or you don't have access to this client!");
-  }
-
-  return result;
-};
-
 
 
 
@@ -189,10 +137,6 @@ const deleteClient = async (id: string) => {
 };
 
 
-export const ClientService = { 
-    createClient, 
-    getAllClients,
-    updateClient,
-    deleteClient,
-    getSingleClient
+export const ClientService = { createClient, getAllClients,updateClient,
+    deleteClient
  };
