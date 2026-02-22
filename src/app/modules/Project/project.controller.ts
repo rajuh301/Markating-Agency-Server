@@ -17,26 +17,26 @@ const createProject = async (req: Request, res: Response) => {
   }
 };
 
-const getProjects = async (req: Request, res: Response) => {
+const getAllProjects = async (req: Request, res: Response) => {
   try {
-    const { userId, role, organizationId } = (req as any).user;
-    let result;
+    const { organizationId } = (req as any).user;
+    const { page, limit } = req.query;
 
-    if (role === 'ADMIN' || role === 'OWNER') {
-      result = await ProjectService.getAllProjectsForAdmin(organizationId);
-    } else {
-      result = await ProjectService.getUserSpecificProjects(userId);
-    }
+    const result = await ProjectService.getAllProjectsForAdmin(organizationId, {
+      page: Number(page),
+      limit: Number(limit)
+    });
 
     res.status(200).json({
       success: true,
-      data: result,
+      message: "Projects fetched successfully!",
+      meta: result.meta,
+      data: result.data,
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
 };
-
 
 const getMyProjects = async (req: Request, res: Response) => {
   try {
@@ -98,7 +98,7 @@ const deleteProject = async (req: Request, res: Response) => {
 
 export const ProjectController = {
   createProject,
-  getProjects,
+  getAllProjects,
   getMyProjects,
   updateProject,
   deleteProject

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { RoleService } from './role.service';
+import prisma from '../../../shared/prisma';
 const createRole = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
@@ -46,7 +47,40 @@ const assignRoleToUser = async (req: Request, res: Response) => {
   }
 };
 
+
+
+const updateRole = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; 
+    const user = (req as any).user;
+
+    const userData = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { organizationId: true }
+    });
+
+    if (!userData?.organizationId) {
+      res.status(401).json({ success: false, message: "Organization not found!" });
+      return;
+    }
+
+    const result = await RoleService.updateRole(id, userData.organizationId, req.body);
+
+    res.status(200).json({
+      success: true,
+      message: "Role updated successfully!",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to update role",
+    });
+  }
+};
+
 export const RoleController = {
   createRole,
-  assignRoleToUser
+  assignRoleToUser,
+  updateRole
 };

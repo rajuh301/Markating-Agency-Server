@@ -31,24 +31,47 @@ const createProject = async (payload: any, creatorId: string) => {
     });
 };
 
- const getAllProjectsForAdmin = async (orgId: string) => {
-  return await prisma.project.findMany({
-    where: { 
-      organizationId: orgId,
-      // CANCELLED বাদে বাকি সব দেখাবে
-      NOT: {
-        status: ProjectStatus.CANCELLED 
-      }
-    },
-    include: { 
-      client: true, 
-      creator: true, 
-      members: { include: { user: true } } 
-    },
-    orderBy: { createdAt: 'desc' }
-  });
-};
+ const getAllProjectsForAdmin = async (orgId: string, options: { page?: number; limit?: number }) => {
+  const page = Number(options.page) || 1;
+  const limit = Number(options.limit) || 10;
+  const skip = (page - 1) * limit;
 
+  // ১. ডাটা এবং মোট সংখ্যা একসাথে বের করা (Transaction বা Promise.all ব্যবহার করা ভালো)
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where: { 
+        organizationId: orgId,
+        NOT: {
+          status: 'CANCELLED' // ProjectStatus.CANCELLED
+        }
+      },
+      include: { 
+        client: true, 
+        creator: true, 
+        members: { include: { user: true } } 
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.project.count({
+      where: { 
+        organizationId: orgId,
+        NOT: { status: 'CANCELLED' }
+      }
+    })
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit)
+    },
+    data: projects
+  };
+};
 
 const getUserSpecificProjects = async (userId: string) => {
   const projects = await prisma.project.findMany({

@@ -35,7 +35,28 @@ const assignRoleZodSchema = z.object({
   }),
 });
 
+const updateRoleZodSchema = z.object({
+  body: z.object({
+    name: z.string().min(2).max(50).optional(),
+    
+    description: z.string().max(255).optional(),
+
+    permissions: z.array(
+      z.object({
+        module: z.string({
+          required_error: "Module name is required if permissions are provided",
+        }),
+        view: z.boolean().optional(),
+        create: z.boolean().optional(),
+        edit: z.boolean().optional(),
+        delete: z.boolean().optional(),
+      })
+    ).optional()
+  }),
+});
+
 export const RoleValidation = {
   createRoleZodSchema,
   assignRoleZodSchema,
+  updateRoleZodSchema
 };

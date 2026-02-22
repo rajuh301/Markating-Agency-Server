@@ -81,7 +81,57 @@ const assignRoleToUser = async (organizationId: string, payload: { userId: strin
 };
 
 
+const updateRole = async (roleId: string, organizationId: string, payload: any) => {
+  const { name, description, permissions } = payload;
+
+  return await prisma.$transaction(async (tx) => {
+    // ১. নিশ্চিত করা যে রোলটি ওই অর্গানাইজেশনের
+    const isExist = await tx.role.findFirst({
+      where: { id: roleId, organizationId }
+    });
+
+    if (!isExist) {
+      throw new Error("Role not found or you don't have permission to update it!");
+    }
+
+    // ২. রোলের নাম এবং ডেসক্রিপশন আপডেট
+    const updatedRole = await tx.role.update({
+      where: { id: roleId },
+      data: { name, description }
+    });
+
+    // ৩. যদি পারমিশন পাঠানো হয়, তবে পুরনো পারমিশন মুছে নতুনগুলো দেওয়া
+    if (permissions && permissions.length > 0) {
+      // পুরনো পারমিশন ডিলিট
+      await tx.permission.deleteMany({
+        where: { roleId }
+      });
+
+      // নতুন পারমিশন তৈরি
+      const permissionData = permissions.map((p: any) => ({
+        roleId: updatedRole.id,
+        module: p.module,
+        canView: p.view || false,
+        canCreate: p.create || false,
+        canEdit: p.edit || false,
+        canDelete: p.delete || false,
+      }));
+
+      await tx.permission.createMany({
+        data: permissionData
+      });
+    }
+
+    return tx.role.findUnique({
+      where: { id: roleId },
+      include: { permissions: true }
+    });
+  });
+};
+
+
 export const RoleService = {
   createRole,
-  assignRoleToUser
+  assignRoleToUser,
+  updateRole
 };

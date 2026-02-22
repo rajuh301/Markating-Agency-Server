@@ -15,7 +15,7 @@ router.post(
 router.get(
   '/',
   auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MEMBER),
-  ProjectController.getProjects
+  ProjectController.getAllProjects
 );
 
 
