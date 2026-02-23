@@ -2,13 +2,22 @@ import { PrismaClient, Prisma } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const createInvoice = async (organizationId: string, payload: any) => {
-  const { items, taxRate, clientId, amountPaid, issueDate, dueDate, note, ...invoiceData } = payload;
-
-  if (!organizationId) {
-    throw new Error("Organization ID is required to create an invoice!");
-  }
+  const { 
+    items, 
+    taxRate, 
+    clientId, 
+    amountPaid, 
+    issueDate, 
+    dueDate, 
+    note, 
+    companyLogo, 
+    signature, 
+    themeColor,
+    ...invoiceData 
+  } = payload;
 
   return await prisma.$transaction(async (tx) => {
+    // 1. Generate Invoice Number (Logic remains same as your snippet)
     const currentYear = new Date().getFullYear();
     const lastInvoice = await tx.invoice.findFirst({
       where: { 
@@ -25,45 +34,40 @@ const createInvoice = async (organizationId: string, payload: any) => {
       newNumber = `INV-${currentYear}-${(lastSequence + 1).toString().padStart(3, '0')}`;
     }
 
-    const subTotal = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) * Number(item.rate)), 0);
+    // 2. Calculate Totals
+    const subTotal = items.reduce((acc: number, item: any) => 
+        acc + (Number(item.quantity) * Number(item.rate)), 0);
     const totalTax = (subTotal * (Number(taxRate) || 0)) / 100;
     const totalAmount = subTotal + totalTax;
 
+    // 3. Create Record
     return await tx.invoice.create({
-  data: {
-    ...invoiceData,
-    invoiceNumber: newNumber,
-    subTotal,
-    totalAmount,
-    notes: note, 
-    taxRate: Number(taxRate) || 0,
-    amountPaid: Number(amountPaid) || 0,
-    issueDate: issueDate ? new Date(issueDate) : new Date(),
-    dueDate: dueDate ? new Date(dueDate) : new Date(),
-    
-    status: "DRAFT", 
-    
-    organization: {
-      connect: { id: organizationId }
-    },
-    client: {
-      connect: { id: clientId }
-    },
-    items: {
-      create: items.map((item: any) => ({
-        description: item.description,
-        quantity: Number(item.quantity),
-        rate: Number(item.rate),
-        amount: Number(item.quantity) * Number(item.rate),
-      })),
-    },
-  },
-  include: {
-    items: true,
-    client: { select: { companyName: true, email: true } }
-  },
-});
-
+      data: {
+        ...invoiceData,
+        invoiceNumber: newNumber,
+        themeColor,
+        companyLogo,
+        signature,
+        subTotal,
+        totalAmount,
+        notes: note || invoiceData.notes, 
+        taxRate: Number(taxRate) || 0,
+        amountPaid: Number(amountPaid) || 0,
+        issueDate: issueDate ? new Date(issueDate) : new Date(),
+        dueDate: new Date(dueDate),
+        organization: { connect: { id: organizationId } },
+        client: { connect: { id: clientId } },
+        items: {
+          create: items.map((item: any) => ({
+            description: item.description,
+            quantity: Number(item.quantity),
+            rate: Number(item.rate),
+            amount: Number(item.quantity) * Number(item.rate),
+          })),
+        },
+      },
+      include: { items: true, client: true },
+    });
   });
 };
 

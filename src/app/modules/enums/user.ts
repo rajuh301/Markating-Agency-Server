@@ -1,7 +1,7 @@
 export enum ENUM_USER_ROLE {
     SUPER_ADMIN = 'SUPER_ADMIN',
     ADMIN = 'ADMIN',
-    OWNER = 'OWNER', // আপনার ফিগমা ডিজাইন অনুযায়ী
+    OWNER = 'OWNER', 
     USER = 'USER',
-    MEMBER = 'MEMBER', // আপনার ফিগমা ডিজাইন অনুযায়ী
+    MEMBER = 'MEMBER', 
 }

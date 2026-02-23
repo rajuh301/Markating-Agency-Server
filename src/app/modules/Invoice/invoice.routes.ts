@@ -4,13 +4,26 @@ import { ENUM_USER_ROLE } from '../enums/user';
 import validateRequest from '../../middleWares/validateRequest';
 import { InvoiceValidation } from './invoice.validation';
 import { InvoiceController } from './invoice.controller';
+import { CloudinaryUpload } from '../../../helpars/cloudinaryHelper';
 
 const router = express.Router();
 
-// ১. ইনভয়েস তৈরি করা (Owner এবং Admin রালদের জন্য)
 router.post(
   '/create-invoice',
   auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+  // 1. Multer parses the multipart form and uploads to Cloudinary
+  CloudinaryUpload.fields([
+    { name: 'companyLogo', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+  ]),
+  // 2. Optional: Add a custom middleware to parse JSON strings before Zod if needed
+  (req, res, next) => {
+     if (req.body.items && typeof req.body.items === 'string') {
+         req.body.items = JSON.parse(req.body.items);
+     }
+     next();
+  },
+  // 3. Now Zod validates the parsed body
   validateRequest(InvoiceValidation.createInvoiceZodSchema),
   InvoiceController.createInvoice
 );

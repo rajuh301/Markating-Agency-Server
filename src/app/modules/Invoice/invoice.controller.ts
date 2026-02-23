@@ -1,19 +1,38 @@
 import { Request, Response } from 'express';
 import { InvoiceService } from './invoice.service';
+import prisma from '../../../shared/prisma';
+import { UserService } from '../User/user.service';
+
 
 const createInvoice = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = (req as any).user;
-    
-    if (!user?.organizationId) {
-      res.status(401).json({ 
-        success: false, 
-        message: "Organization ID missing. Please re-login." 
-      });
-      return; // এখানে শুধু return; ব্যবহার করুন, return res... নয়
-    }
+    const userId = (req as any).user.userId; 
+          
+          const organation = await UserService.getMyProfile(userId);
 
-    const result = await InvoiceService.createInvoice(user.organizationId, req.body);
+          const user = organation.organizationId
+
+
+    // 1. Get uploaded file URLs from req.files
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    
+    const companyLogoUrl = files?.companyLogo?.[0]?.path;
+    const signatureUrl = files?.signature?.[0]?.path;   
+
+    // 2. Prepare data (Parse items if sent as string from FormData)
+    const data = { ...req.body };
+    if (typeof data.items === 'string') {
+      data.items = JSON.parse(data.items);
+    }
+    
+    // 3. Attach file URLs to the payload
+    const payload = {
+      ...data,
+      companyLogo: companyLogoUrl,
+      signature: signatureUrl,
+    };
+
+    const result = await InvoiceService.createInvoice(user, payload);
 
     res.status(201).json({
       success: true,
