@@ -91,6 +91,7 @@ const getUserSpecificProjects = async (userId: string) => {
       createdAt: 'desc',
     },
   });
+return projects;
 }
 
 
