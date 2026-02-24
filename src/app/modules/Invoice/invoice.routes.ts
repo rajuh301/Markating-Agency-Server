@@ -47,10 +47,6 @@ router.patch(
   InvoiceController.updateInvoice
 );
 
-router.get(
-  '/statement',
-  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
-  InvoiceController.getStatement
-);
+
 
 export const InvoiceRoutes = router;
