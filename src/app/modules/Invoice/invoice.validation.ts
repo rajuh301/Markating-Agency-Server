@@ -2,8 +2,6 @@ import { z } from 'zod';
 
 const createInvoiceZodSchema = z.object({
   body: z.object({
-    clientId: z.string({ required_error: "Client ID is required" }),
-    // Use preprocess to handle strings coming from FormData
     taxRate: z.preprocess((val) => Number(val), z.number().min(0).max(100)).optional(),
     items: z.preprocess((val) => {
       if (typeof val === 'string') return JSON.parse(val);
@@ -14,7 +12,7 @@ const createInvoiceZodSchema = z.object({
         quantity: z.preprocess((val) => Number(val), z.number().min(1)),
         rate: z.preprocess((val) => Number(val), z.number().min(0)),
       })
-    )).optional(), // make optional if you handle empty check in service
+    )) 
   }),
 });
 

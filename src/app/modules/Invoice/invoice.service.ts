@@ -1,11 +1,81 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 const prisma = new PrismaClient();
 
+// const createInvoice = async (organizationId: string, payload: any) => {
+//   const { 
+//     items, 
+//     taxRate, 
+//     clientId, 
+//     amountPaid, 
+//     issueDate, 
+//     dueDate, 
+//     note, 
+//     companyLogo, 
+//     signature, 
+//     themeColor,
+//     ...invoiceData 
+//   } = payload;
+
+//   return await prisma.$transaction(async (tx) => {
+//     // 1. Generate Invoice Number (Logic remains same as your snippet)
+//     const currentYear = new Date().getFullYear();
+//     const lastInvoice = await tx.invoice.findFirst({
+//       where: { 
+//         organizationId, 
+//         invoiceNumber: { startsWith: `INV-${currentYear}` } 
+//       },
+//       orderBy: { createdAt: 'desc' },
+//     });
+
+//     let newNumber = `INV-${currentYear}-001`;
+//     if (lastInvoice) {
+//       const parts = lastInvoice.invoiceNumber.split('-');
+//       const lastSequence = parseInt(parts[2]);
+//       newNumber = `INV-${currentYear}-${(lastSequence + 1).toString().padStart(3, '0')}`;
+//     }
+
+//     // 2. Calculate Totals
+//     const subTotal = items.reduce((acc: number, item: any) => 
+//         acc + (Number(item.quantity) * Number(item.rate)), 0);
+//     const totalTax = (subTotal * (Number(taxRate) || 0)) / 100;
+//     const totalAmount = subTotal + totalTax;
+
+//     // 3. Create Record
+//     return await tx.invoice.create({
+//       data: {
+//         ...invoiceData,
+//         invoiceNumber: newNumber,
+//         themeColor,
+//         companyLogo,
+//         signature,
+//         subTotal,
+//         totalAmount,
+//         notes: note || invoiceData.notes, 
+//         taxRate: Number(taxRate) || 0,
+//         amountPaid: Number(amountPaid) || 0,
+//         issueDate: issueDate ? new Date(issueDate) : new Date(),
+//         dueDate: new Date(dueDate),
+//         organization: { connect: { id: organizationId } },
+//         client: { connect: { id: clientId } },
+//         items: {
+//           create: items.map((item: any) => ({
+//             description: item.description,
+//             quantity: Number(item.quantity),
+//             rate: Number(item.rate),
+//             amount: Number(item.quantity) * Number(item.rate),
+//           })),
+//         },
+//       },
+//       include: { items: true, client: true },
+//     });
+//   });
+// };
+
+
 const createInvoice = async (organizationId: string, payload: any) => {
   const { 
     items, 
     taxRate, 
-    clientId, 
     amountPaid, 
     issueDate, 
     dueDate, 
@@ -17,46 +87,59 @@ const createInvoice = async (organizationId: string, payload: any) => {
   } = payload;
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Generate Invoice Number (Logic remains same as your snippet)
+
+    // ✅ Ensure items exists
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error("Items must be a non-empty array");
+    }
+
+    // 1️⃣ Invoice Number Generate
     const currentYear = new Date().getFullYear();
     const lastInvoice = await tx.invoice.findFirst({
       where: { 
-        organizationId, 
-        invoiceNumber: { startsWith: `INV-${currentYear}` } 
+        invoiceNumber: { startsWith: `INV-${currentYear}` },
+        organizationId
       },
       orderBy: { createdAt: 'desc' },
     });
 
     let newNumber = `INV-${currentYear}-001`;
+
     if (lastInvoice) {
       const parts = lastInvoice.invoiceNumber.split('-');
       const lastSequence = parseInt(parts[2]);
-      newNumber = `INV-${currentYear}-${(lastSequence + 1).toString().padStart(3, '0')}`;
+      newNumber = `INV-${currentYear}-${(lastSequence + 1)
+        .toString()
+        .padStart(3, '0')}`;
     }
 
-    // 2. Calculate Totals
-    const subTotal = items.reduce((acc: number, item: any) => 
-        acc + (Number(item.quantity) * Number(item.rate)), 0);
+    // 2️⃣ Calculation
+    const subTotal = items.reduce(
+      (acc: number, item: any) =>
+        acc + Number(item.quantity) * Number(item.rate),
+      0
+    );
+
     const totalTax = (subTotal * (Number(taxRate) || 0)) / 100;
     const totalAmount = subTotal + totalTax;
 
-    // 3. Create Record
+    // 3️⃣ Create Invoice
     return await tx.invoice.create({
       data: {
         ...invoiceData,
+        organizationId, // ✅ attach organization
         invoiceNumber: newNumber,
         themeColor,
         companyLogo,
         signature,
         subTotal,
         totalAmount,
-        notes: note || invoiceData.notes, 
+        notes: note || null,
         taxRate: Number(taxRate) || 0,
         amountPaid: Number(amountPaid) || 0,
         issueDate: issueDate ? new Date(issueDate) : new Date(),
-        dueDate: new Date(dueDate),
-        organization: { connect: { id: organizationId } },
-        client: { connect: { id: clientId } },
+        dueDate: dueDate ? new Date(dueDate) : new Date(),
+
         items: {
           create: items.map((item: any) => ({
             description: item.description,
@@ -66,7 +149,7 @@ const createInvoice = async (organizationId: string, payload: any) => {
           })),
         },
       },
-      include: { items: true, client: true },
+      include: { items: true },
     });
   });
 };
@@ -178,5 +261,5 @@ export const InvoiceService = {
   createInvoice,
   getAllInvoices,
   getSingleInvoice,
-  updateInvoice
+  updateInvoice,
 };

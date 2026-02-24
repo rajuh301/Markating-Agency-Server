@@ -47,7 +47,7 @@ const createInvoice = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// একইভাবে getAllInvoices ও চেক করুন
+
 const getAllInvoices = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
@@ -62,7 +62,6 @@ const getAllInvoices = async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ success: false, message: error.message });
     }
 };
-
 
 const getSingleInvoice = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -101,5 +100,5 @@ export const InvoiceController = {
   createInvoice,
   getAllInvoices,
   getSingleInvoice,
-  updateInvoice
+  updateInvoice,
 };
