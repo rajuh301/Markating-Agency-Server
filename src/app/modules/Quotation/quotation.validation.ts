@@ -39,6 +39,37 @@ taxRate: z.coerce.number().default(0),
   }),
 });
 
+
+
+const updateQuotationZodSchema = z.object({
+  body: z.object({
+    status: z.enum(['PENDING', 'SENT', 'ACCEPTED', 'DECLINED', 'INVOICED']).optional(),
+  }),
+    fromName: z.string().optional(),
+    fromAddress: z.string().optional(),
+    fromEmail: z.string().optional(),
+    fromPhone: z.string().optional(),
+    toName: z.string().optional(),
+    toAddress: z.string().optional(),
+    toEmail: z.string().optional(),
+    toPhone: z.string().optional(),
+    notes: z.string().optional(),
+    terms: z.string().optional(),
+    themeColor: z.string().optional(),
+
+
+     companyLogo: z.string().optional(),
+    signature: z.string().optional(),
+taxRate: z.coerce.number().default(0),
+quotationDate: z.string().optional(),
+dueDate: z.string().optional(),
+  description: z.string().optional(),
+quantity: z.coerce.number().default(0),
+rate: z.coerce.number().default(0),
+
+});
+
 export const QuotationValidation = {
   createQuotationZodSchema,
+  updateQuotationZodSchema
 };

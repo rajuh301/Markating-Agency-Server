@@ -31,4 +31,23 @@ router.post(
   QuotationController.createQuotation
 );
 
+router.get(
+  '/',
+  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MEMBER),
+  QuotationController.getAllQuotations
+);
+
+router.get(
+  '/:id',
+  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MEMBER),
+  QuotationController.getSingleQuotation
+);
+
+router.patch(
+  '/:id',
+  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(QuotationValidation.updateQuotationZodSchema),
+  QuotationController.updateQuotation
+);
+
 export const QuotationRoutes = router;

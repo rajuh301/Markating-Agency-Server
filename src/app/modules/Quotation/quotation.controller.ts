@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { QuotationService } from './quotation.service';
 import { UserService } from '../User/user.service';
 
@@ -50,6 +50,38 @@ const createQuotation = async (req: Request, res: Response) => {
   }
 };
 
+
+const getAllQuotations = async (req: Request, res: Response) => {
+  const result = await QuotationService.getAllQuotations();
+  res.status(200).json({ success: true, data: result });
+};
+
+const getSingleQuotation = async (req: Request, res: Response) => {
+  const result = await QuotationService.getSingleQuotation(req.params.id);
+  res.status(200).json({ success: true, data: result });
+};
+
+const updateQuotation = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const payload = req.body;
+
+    const result = await QuotationService.updateQuotation(id, payload);
+
+    res.status(200).json({
+      success: true,
+      message: 'Quotation updated successfully!',
+      data: result,
+    });
+  } catch (error: any) {
+    // এটি সরাসরি রেসপন্স না পাঠিয়ে গ্লোবাল হ্যান্ডলারে পাঠাবে
+    next(error); 
+  }
+};
+
 export const QuotationController = {
   createQuotation,
+  getAllQuotations,
+  getSingleQuotation,
+  updateQuotation,
 };

@@ -87,6 +87,42 @@ const createQuotation = async (organizationId: string, payload: any) => {
   });
 };
 
+
+const getAllQuotations = async () => {
+  return await prisma.quotation.findMany({
+    include: { items: true, client: true },
+    orderBy: { createdAt: 'desc' },
+  });
+};
+
+const getSingleQuotation = async (id: string) => {
+  return await prisma.quotation.findUnique({
+    where: { id },
+    include: { items: true, client: true },
+  });
+};
+
+const updateQuotation = async (id: string, payload: any) => {
+
+  const isExist = await prisma.quotation.findUnique({
+    where: { id },
+  });
+
+  if (!isExist) {
+    throw new Error("Quotation not found with this ID");
+  }
+
+  // ২. থাকলে আপডেট করুন
+  return await prisma.quotation.update({
+    where: { id },
+    data: payload,
+    include: { items: true },
+  });
+};
+
 export const QuotationService = {
   createQuotation,
+  getAllQuotations,
+  getSingleQuotation,
+  updateQuotation,
 };
