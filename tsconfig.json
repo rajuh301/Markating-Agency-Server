@@ -1,5 +1,14 @@
 {
   "compilerOptions": {
+
+    /* Modules */
+    "moduleResolution": "node", /* অথবা "node10" যদি "node" কাজ না করে */
+    "baseUrl": "./",
+    
+    /* Interop Constraints */
+    "allowSyntheticDefaultImports": true, /* এটি নিশ্চিত করুন */
+
+
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
     /* Projects */

@@ -2,60 +2,74 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const createQuotation = async (payload: any, organizationId: string) => {
+const createQuotation = async (organizationId: string, payload: any) => {
   const { 
     items, 
     taxRate, 
     quotationDate, 
     dueDate, 
+    note, 
+    companyLogo, 
+    signature, 
+    themeColor,
+    clientId, // Quotation-এর জন্য clientId সাধারণত প্রয়োজন হয়
     ...quotationData 
   } = payload;
 
   return await prisma.$transaction(async (tx) => {
-    // ১. অটো-কোটেশন নম্বর জেনারেশন (QT-Year-Number)
+
+    // ✅ Ensure items exists
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error("Items must be a non-empty array");
+    }
+
+    // 1️⃣ Quotation Number Generate (Prefix: QTN)
     const currentYear = new Date().getFullYear();
     const lastQuotation = await tx.quotation.findFirst({
-      where: {
-        organizationId,
-        quotationNumber: { startsWith: `QT-${currentYear}` },
+      where: { 
+        quotationNumber: { startsWith: `QTN-${currentYear}` },
+        organizationId
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    let newNumber: string;
+    let newNumber = `QTN-${currentYear}-001`;
+
     if (lastQuotation) {
-      const lastSequence = parseInt(lastQuotation.quotationNumber.split('-')[2]);
-      const nextSequence = (lastSequence + 1).toString().padStart(3, '0');
-      newNumber = `QT-${currentYear}-${nextSequence}`;
-    } else {
-      newNumber = `QT-${currentYear}-001`;
+      const parts = lastQuotation.quotationNumber.split('-');
+      const lastSequence = parseInt(parts[2]);
+      newNumber = `QTN-${currentYear}-${(lastSequence + 1)
+        .toString()
+        .padStart(3, '0')}`;
     }
 
-    // ২. সাব-টোটাল ক্যালকুলেশন
+    // 2️⃣ Calculation
     const subTotal = items.reduce(
-      (acc: number, item: any) => acc + item.quantity * Number(item.rate),
+      (acc: number, item: any) =>
+        acc + Number(item.quantity) * Number(item.rate),
       0
     );
 
-    // ৩. ট্যাক্স এবং টোটাল অ্যামাউন্ট ক্যালকুলেশন
     const totalTax = (subTotal * (Number(taxRate) || 0)) / 100;
     const totalAmount = subTotal + totalTax;
 
-    // ৪. কোটেশন তৈরি
-    const result = await tx.quotation.create({
+    // 3️⃣ Create Quotation
+    return await tx.quotation.create({
       data: {
         ...quotationData,
+        organizationId, 
+        clientId, // রিলেশনশিপ অনুযায়ী এটি গুরুত্বপূর্ণ
         quotationNumber: newNumber,
-        organizationId,
+        themeColor,
+        companyLogo,
+        signature,
         subTotal,
         totalAmount,
+        notes: note || null,
         taxRate: Number(taxRate) || 0,
-        
-        // Date Fix
         quotationDate: quotationDate ? new Date(quotationDate) : new Date(),
         dueDate: dueDate ? new Date(dueDate) : new Date(),
 
-        // Relation: Quotation Items
         items: {
           create: items.map((item: any) => ({
             description: item.description,
@@ -65,12 +79,11 @@ const createQuotation = async (payload: any, organizationId: string) => {
           })),
         },
       },
-      include: {
+      include: { 
         items: true,
+        client: true // যাতে রেসপন্সে ক্লায়েন্টের ডিটেইলসও দেখা যায়
       },
     });
-
-    return result;
   });
 };
 
