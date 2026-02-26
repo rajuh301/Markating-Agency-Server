@@ -148,8 +148,10 @@ model Project {
 
   budget       Decimal? @db.Decimal(10, 2)
   currency     String?  @default("USD")
-  billingType  String? // Fixed Price, Hourly, etc.
-  paymentTerms String? // NET 30%, etc.
+  billingType  String? 
+  paymentTerms String? 
+
+  type          String? @default("Regular")
 
   startDate DateTime?
   deadline  DateTime?
