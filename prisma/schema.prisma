@@ -210,6 +210,7 @@ model Invoice {
   paymentTerms String?
   issueDate    DateTime @default(now())
   dueDate      DateTime
+  type          String? @default("Regular")
 
   fromName    String?
   fromAddress String?
