@@ -79,6 +79,26 @@ const getSingleInvoice = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+const getStatement = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Extract organizationId and date filters from query params
+    const { organizationId, startDate, endDate } = req.query;
+
+    const result = await InvoiceService.getInvoiceStatement(
+      organizationId as string, 
+      { startDate, endDate } // Pass as an object to match your service
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Invoice statement fetched successfully!",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+}
+
 const updateInvoice = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -101,4 +121,5 @@ export const InvoiceController = {
   getAllInvoices,
   getSingleInvoice,
   updateInvoice,
+  getStatement
 };

@@ -187,9 +187,39 @@ const updateInvoice = async (id: string, organizationId: string, payload: any) =
   });
 };
 
+const getInvoiceStatement = async (organizationId: string, query: any) => {
+  const { startDate, endDate } = query;
+
+  const whereConditions: Prisma.InvoiceWhereInput = { organizationId };
+
+  if (startDate && endDate) {
+    // Create dates and force time boundaries
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    whereConditions.issueDate = {
+      gte: start,
+      lte: end
+    };
+  }
+
+  const data = await prisma.invoice.findMany({
+    where: whereConditions,
+    include: { client: { select: { companyName: true } } },
+    orderBy: { issueDate: 'desc' }
+  });
+
+  return data;
+};
+
+
 export const InvoiceService = {
   createInvoice,
   getAllInvoices,
   getSingleInvoice,
   updateInvoice,
+  getInvoiceStatement
 };

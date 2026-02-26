@@ -28,6 +28,15 @@ router.post(
   InvoiceController.createInvoice
 );
 
+
+router.get(
+  '/statement',
+  auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
+  InvoiceController.getStatement
+);
+
+
+
 router.get(
   '/',
   auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MEMBER),
@@ -46,6 +55,7 @@ router.patch(
   auth(ENUM_USER_ROLE.OWNER, ENUM_USER_ROLE.ADMIN),
   InvoiceController.updateInvoice
 );
+
 
 
 
